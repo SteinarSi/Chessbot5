@@ -22,6 +22,8 @@ pub struct Piece{
 	pub color: Color
 }
 
+pub type Vector = (i8, i8);
+
 impl Piece{
 	pub fn new(c: char) -> Option<Piece>{
 		let color = if c.is_uppercase() { Color::White } else { Color::Black };
@@ -34,6 +36,30 @@ impl Piece{
 			'k' => Some(Piece{piecetype: PieceType::King, color}),
 			'-' => None,
 			_   => { panic!("Got an unexpected character when creating a piece: {}", c); }
+		}
+	}
+
+	pub fn directions(&self) -> &[Vector]{
+		match self.piecetype{
+			PieceType::King   => &[(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)],
+			PieceType::Queen  => &[(-1, -1), (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0)],
+			PieceType::Bishop => &[(-1, -1), (1, -1), (1, 1), (-1, 1)],
+			PieceType::Knight => &[(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)],
+			PieceType::Rook   => &[(0, -1), (1, 0), (0, 1), (-1, 0)],
+			PieceType::Pawn   => if self.color == Color::White { 
+									&[(-1, -1), (0, -1), (1, -1)] 
+								 } else {
+								 	&[(-1,  1), (0,  1), (1,  1)]
+								 }
+		}
+	}
+
+	pub fn can_run(&self) -> bool{
+		match self.piecetype{
+			PieceType::Rook   => true,
+			PieceType::Bishop => true,
+			PieceType::Queen  => true,
+			_                 => false
 		}
 	}
 

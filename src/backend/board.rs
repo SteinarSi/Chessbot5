@@ -1,6 +1,6 @@
-pub use crate::piece::{Piece, Color};
-pub use crate::movement::{Move, Score};
-use crate::movement::Position;
+pub use super::piece::{Piece, PieceType, Color};
+pub use super::movement::{Move, Score};
+use super::movement::Position;
 use std::fmt;
 
 const BOARD_SIZE: usize = 8;
@@ -72,6 +72,52 @@ impl Board{
 		}
 	}
 
+	//Genererer en liste av lovlige trekk.
+	//TODO: Denne tar ennå ikke hensyn til rokader, en passant, promotering, eller om trekket setter kongen i sjakk.
+	//TODO: Bønder funker heller ikke.
+	pub fn moves(&self) -> Vec<Move>{
+		let mut ret = Vec::new();
+		let color = self.color_to_move;
+
+		for y in 0..BOARD_SIZE{
+			for x in 0..BOARD_SIZE{
+				if let Some(p) = &self.grid[y][x]{
+					if p.color == color{
+						if p.can_run(){
+							for dir in p.directions(){
+								let mut to_x = x as i8 + dir.0;
+								let mut to_y = y as i8 + dir.1;
+								loop{
+									if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { break; }
+									if let Some(t) = self.grid[to_y as usize][to_x as usize]{
+										if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+										break;
+									}
+									ret.push(Move::new(x, y, to_x as usize, to_y as usize));
+									to_x += dir.0;
+									to_y += dir.1;
+								}
+							}
+						}
+						else{
+							for dir in p.directions(){
+								let to_x = x as i8 + dir.0;
+								let to_y = y as i8 + dir.1;
+								if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { continue; }
+								if let Some(t) = self.grid[to_y as usize][to_x as usize]{
+									if t.color == color { continue; }
+								}
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize));
+							}
+						}
+
+					}
+				}
+			}
+		}
+		ret
+	}
+
 	fn get_piece_at(&self, p: &Position) -> Option<Piece>{
 		self.grid[p.y][p.x].clone()
 	}
@@ -125,7 +171,30 @@ impl fmt::Debug for TombStone{
 }
 
 
+#[cfg(test)]
+mod test_move_generation{
+	use super::*;
 
+	const empty: &str = "\
+--------
+--------
+--------
+--------
+--------
+--------
+--------
+--------";
+	#[test]
+	fn just_a_king(){
+		let mut board = Board::custom(empty, Color::White);
+		board.grid[7][4] = Some(Piece{piecetype: PieceType::King, color: Color::White});
+		let moves = board.moves();
+		let expected: Vec<Move> = ["e1d2", "e1e2", "e1f2", "e1f1", "e1d1"].iter().map(|s| Move::from_str(s).unwrap()).collect();
+
+		assert_eq!(moves, expected);
+	}
+
+}
 
 #[cfg(test)]
 mod test_movement{
@@ -160,7 +229,7 @@ PPPP-PPP
 RNBQKBNR";	
 
 	#[test]
-	fn e4(){
+	fn just_e4(){
 		let mut board = Board::new();
 		let expected = Board::custom(e4, Color::Black);
 		board.move_piece(Move::new(4, 6, 4, 4));
@@ -225,13 +294,13 @@ RNBQKBNR";
 		let mut board = Board::new();
 
 		board.move_piece(Move::new(4, 6, 4, 4));
-		assert_eq!(board.grid, Board::custom(e4));
+		assert_eq!(board.grid, Board::custom(e4, Color::Black).grid);
 
 		board.move_piece(Move::new(2, 1, 2, 3));
-		assert_eq!(board.grid, Board::custom(e4c5));
+		assert_eq!(board.grid, Board::custom(e4c5, Color::White).grid);
 
 		board.go_back();
 		board.move_piece(Move::new(2, 1, 2, 2));
-		assert_eq!(board.grid, Board::custom(e4c6));
+		assert_eq!(board.grid, Board::custom(e4c6, Color::White).grid);
 	}
 }

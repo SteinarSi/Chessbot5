@@ -1,19 +1,15 @@
-mod board;
-mod piece;
-mod movement;
+mod backend;
 
-use board::Board;
+use crate::backend::board;
+use crate::backend::movement;
 
 fn main() {
-    let mut board = Board::new();
-    println!("{}", board.to_string());
-    let e2e4 = board::Move::new(4, 6, 4, 4);
-    let e1e2 = board::Move::new(4, 7, 4, 6);
-    board.move_piece(e2e4);
-    board.move_piece(e1e2);
-    println!("{}", board.to_string());
+    let m1 = movement::Move::from_str("e2e4").unwrap();
+    let m2 = movement::Move::from_str("c7c5").unwrap();
+    let mut board = board::Board::new();
 
-    board.go_back();
-    board.go_back();
-    println!("{}", board.to_string());
+    board.move_piece(m1);
+    board.move_piece(m2);
+
+    println!("{}, {}, {}", board.to_string(), m1.to_string(), m2.to_string());
 }

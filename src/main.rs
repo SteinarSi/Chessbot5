@@ -1,5 +1,6 @@
 mod board;
 mod piece;
+mod movement;
 
 use board::Board;
 

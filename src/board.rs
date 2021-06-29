@@ -1,4 +1,6 @@
 pub use crate::piece::{Piece, Color};
+pub use crate::movement::{Move, Score};
+use crate::movement::Position;
 use std::fmt;
 
 const BOARD_SIZE: usize = 8;
@@ -24,22 +26,6 @@ pub struct Board{
 	//TODO blir mange flere felt her etter hvert.
 }
 
-#[derive(Copy, Clone, PartialEq)]
-pub struct Move{
-	from: Position,
-	to: Position,
-	value: Option<Score>
-}
-
-#[derive(Copy, Clone, PartialEq)]
-pub struct Score(u32);
-
-#[derive(Copy, Clone, PartialEq)]
-struct Position{
-	x: usize,
-	y: usize
-}
-
 //Holder styr på hvor og når brikker blir tatt, så de kan respawnes etterpå.
 #[derive(PartialEq)]
 struct TombStone{
@@ -50,7 +36,7 @@ struct TombStone{
 
 impl Board{
 	pub fn new() -> Self{
-		Board::custom_board(DEFAULT_BOARD, Color::White)
+		Board::custom(DEFAULT_BOARD, Color::White)
 	}
 
 	pub fn move_piece(&mut self, m: Move){
@@ -90,7 +76,7 @@ impl Board{
 		self.grid[p.y][p.x].clone()
 	}
 
-	fn custom_board(s: &str, c: Color) -> Self{
+	fn custom(s: &str, c: Color) -> Self{
 		let s = s.replace(&['\n'][..], "");
 		let mut grid = [[None; BOARD_SIZE]; BOARD_SIZE];
 		let mut y = 0;
@@ -103,25 +89,10 @@ impl Board{
 				x = 0;
 			}
 		}
-		Board{grid, color_to_move: c, score: Score(0), counter: 0, graveyard: Vec::new(), moves: Vec::new()}
+		Board{grid, color_to_move: c, score: 0, counter: 0, graveyard: Vec::new(), moves: Vec::new()}
 	}
 
 
-}
-
-impl Move{
-	//Lager et nytt move. NB! Denne bryr seg kun om koordinater, der Origo er oppe til venstre.
-	//Dermed er e1->e2 det samme som (4, 7, 4, 6).
-	pub fn new(filefrom: usize, rankfrom: usize, fileto: usize, rankto: usize) -> Self{
-		Move{from: Position{x: filefrom, y: rankfrom}, to: Position{x: fileto, y: rankto}, value: None}
-	}
-
-	pub fn value(&self) -> Score{
-		match self.value{
-			None    => { panic!("This move has no associated value."); }
-			Some(v) => v
-		}
-	}
 }
 
 impl ToString for Board{
@@ -149,16 +120,18 @@ impl fmt::Debug for Board{
 
 impl fmt::Debug for TombStone{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "turn: {}, piece: {}", self.date, self.piece) //TODOOOO
+		write!(f, "turn: {}, piece: {}", self.date, self.piece)
 	}
 }
+
+
+
 
 #[cfg(test)]
 mod test_movement{
 	use super::*;
-	#[test]
-	fn e2e4(){
-		let e4 = "\
+
+	const e4: &str = "\
 rnbqkbnr
 pppppppp
 --------
@@ -167,33 +140,7 @@ pppppppp
 --------
 PPPP-PPP
 RNBQKBNR";
-		let mut board = Board::new();
-		let expected = Board::custom_board(e4, Color::Black);
-		board.move_piece(Move::new(4, 6, 4, 4));
-
-		assert_eq!(board.grid, expected.grid);
-	}
-
-	#[test]
-	fn e2e4_and_back(){
-		let mut board = Board::new();
-		board.move_piece(Move::new(4, 6, 4, 4));
-		board.go_back();
-		assert_eq!(board, Board::new());
-	}
-
-	#[test]
-	fn e2e4_c7c5_and_back(){
-		let e4 = "\
-rnbqkbnr
-pppppppp
---------
---------
-----P---
---------
-PPPP-PPP
-RNBQKBNR";
-		let c5 = "\
+	const e4c5: &str = "\
 rnbqkbnr
 pp-ppppp
 --------
@@ -202,16 +149,45 @@ pp-ppppp
 --------
 PPPP-PPP
 RNBQKBNR";
+	const e4c6: &str = "\
+rnbqkbnr
+pp-ppppp
+--p-----
+--------
+----P---
+--------
+PPPP-PPP
+RNBQKBNR";	
+
+	#[test]
+	fn e4(){
+		let mut board = Board::new();
+		let expected = Board::custom(e4, Color::Black);
+		board.move_piece(Move::new(4, 6, 4, 4));
+
+		assert_eq!(board.grid, expected.grid);
+	}
+
+	#[test]
+	fn e4_and_back(){
+		let mut board = Board::new();
+		board.move_piece(Move::new(4, 6, 4, 4));
+		board.go_back();
+		assert_eq!(board, Board::new());
+	}
+
+	#[test]
+	fn e4_c5_and_back(){
 		let mut board = Board::new();
 
 		board.move_piece(Move::new(4, 6, 4, 4));
-		assert_eq!(board.grid, Board::custom_board(e4, Color::Black).grid);
+		assert_eq!(board.grid, Board::custom(e4, Color::Black).grid);
 
 		board.move_piece(Move::new(2, 1, 2, 3));
-		assert_eq!(board.grid, Board::custom_board(c5, Color::White).grid);
+		assert_eq!(board.grid, Board::custom(e4c5, Color::White).grid);
 
 		board.go_back();
-		assert_eq!(board.grid, Board::custom_board(e4, Color::Black).grid);
+		assert_eq!(board.grid, Board::custom(e4, Color::Black).grid);
 
 		board.go_back();
 		assert_eq!(board, Board::new());
@@ -232,7 +208,7 @@ RNBQKBNR";
 		let mut board = Board::new();
 
 		board.move_piece(Move::new(4, 6, 4, 1));
-		assert_eq!(board.grid, Board::custom_board(e2e7, Color::Black).grid);
+		assert_eq!(board.grid, Board::custom(e2e7, Color::Black).grid);
 
 		board.go_back();
 		assert_eq!(board, Board::new());
@@ -242,5 +218,20 @@ RNBQKBNR";
 	fn cannot_go_back_from_inital_state(){
 		let mut board = Board::new();
 		board.go_back();
+	}
+
+	#[test]
+	fn e4_c5_back_c6_back_back(){
+		let mut board = Board::new();
+
+		board.move_piece(Move::new(4, 6, 4, 4));
+		assert_eq!(board.grid, Board::custom(e4));
+
+		board.move_piece(Move::new(2, 1, 2, 3));
+		assert_eq!(board.grid, Board::custom(e4c5));
+
+		board.go_back();
+		board.move_piece(Move::new(2, 1, 2, 2));
+		assert_eq!(board.grid, Board::custom(e4c6));
 	}
 }

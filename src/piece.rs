@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum Color{
 	White,
@@ -14,7 +16,7 @@ pub enum PieceType{
 	Pawn
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Piece{
 	pub piecetype: PieceType,
 	pub color: Color
@@ -47,5 +49,44 @@ impl Piece{
 		if self.color == Color::White{
 			c.to_uppercase().next().unwrap()
 		} else { c }
+	}
+}
+
+impl Color {
+	pub fn opposite(&self) -> Color{
+		match self{
+			Color::White => Color::Black,
+			Color::Black => Color::White
+		}
+	}
+}
+
+impl fmt::Display for Color{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let s = match self{
+			Color::White => "White",
+			Color::Black => "Black"
+		};
+		write!(f, "{}", s)
+	}
+}
+
+impl fmt::Display for PieceType{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		let s = match self{
+			PieceType::King => "King",
+			PieceType::Queen => "Queen",
+			PieceType::Bishop => "Bishop",
+			PieceType::Knight => "Knight",
+			PieceType::Rook => "Rook",
+			PieceType::Pawn => "Pawn"
+		};
+		write!(f, "{}", s)
+	}
+}
+
+impl fmt::Display for Piece{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "{} {}", self.piecetype, self.color)
 	}
 }

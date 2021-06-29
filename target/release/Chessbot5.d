@@ -1,0 +1,1 @@
+C:\Users\stein\OneDrive\Dokumenter\Rust\chessbot5\target\release\Chessbot5.exe: C:\Users\stein\OneDrive\Dokumenter\Rust\chessbot5\src\board.rs C:\Users\stein\OneDrive\Dokumenter\Rust\chessbot5\src\main.rs C:\Users\stein\OneDrive\Dokumenter\Rust\chessbot5\src\piece.rs

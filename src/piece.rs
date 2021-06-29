@@ -30,7 +30,7 @@ impl Piece{
 			'b' => Some(Piece{piecetype: PieceType::Bishop, color}),
 			'q' => Some(Piece{piecetype: PieceType::Queen, color}),
 			'k' => Some(Piece{piecetype: PieceType::King, color}),
-			'_' => None,
+			'-' => None,
 			_   => { panic!("Got an unexpected character when creating a piece: {}", c); }
 		}
 	}
@@ -44,7 +44,7 @@ impl Piece{
 			PieceType::Knight => 'n',
 			PieceType::Rook => 'r',
 		};
-		if let White = self.color{
+		if self.color == Color::White{
 			c.to_uppercase().next().unwrap()
 		} else { c }
 	}

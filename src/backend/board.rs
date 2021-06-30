@@ -44,7 +44,6 @@ impl Board{
 	}
 
 	pub fn move_piece(&mut self, m: &Move){
-		println!("{}", m.to_string());
 		let pie = self.get_clone_at(&m.from);
 		if let Some(target) = self.get_clone_at(&m.to){
 			self.graveyard.push(TombStone{piece: target, position: m.to, date: self.counter})
@@ -58,7 +57,7 @@ impl Board{
 				passant = Some(m.from.x as i8);
 			}
 		}
-		self.update_castle();
+		self.update_castle(m);
 		self.passants.push(passant);
 		self.moves.push(*m);
 		self.counter += 1;
@@ -167,11 +166,13 @@ impl Board{
 		&self.grid[y][x]
 	}
 
-	fn update_castle(&mut self){
-		//TODOOOO
-		self.castles.push(self.castles[self.counter as usize]);
-
-		//TDOOOOODODODODODOD
+	fn update_castle(&mut self, m: &Move){
+		let c = self.castles[self.counter as usize];
+		let next = (c.0 && m.from != E1 && m.from != H1 && m.to != H1,
+					c.1 && m.from != E1 && m.from != A1 && m.to != A1,
+					c.2 && m.from != E8 && m.from != H8 && m.to != H8,
+					c.3 && m.from != E8 && m.from != A8 && m.to != A8);			
+		self.castles.push(next);
 	}
 
 	fn castle_moves(&self) -> Vec<Move>{
@@ -240,6 +241,13 @@ impl Board{
 
 
 }
+
+const E1: Position = Position{x: 4, y: 7};
+const E8: Position = Position{x: 4, y: 0};
+const A1: Position = Position{x: 0, y: 7};
+const A8: Position = Position{x: 0, y: 0};
+const H1: Position = Position{x: 7, y: 7};
+const H8: Position = Position{x: 7, y: 0};
 
 impl ToString for Board{
 	fn to_string(&self) -> String{
@@ -419,6 +427,12 @@ mod test_move_generation{
 		assert!( ! board.moves().contains(&Move::from_str("e5d6").unwrap()));		
 	}
 
+}
+
+#[cfg(test)]
+mod test_castling{
+	use super::*;
+
 	#[test]
 	fn inital_castle(){
 		let mut board = Board::new();
@@ -454,15 +468,6 @@ RNBQKBN-";
 
 	#[test]
 	fn can_castle_short_when_not_obstructed(){
-		let setup = "\
-rnbqkbnr
-pppppppp
---------
---------
---------
---------
-PPPPPPPP
-RNBQKBNR";
 		let mut board = Board::new();
 		assert_eq!(0, board.castle_moves().len());
 
@@ -481,15 +486,6 @@ RNBQKBNR";
 	}
 
 	fn can_castle_long_when_not_obstructed(){
-		let setup = "\
-rnbqkbnr
-pppppppp
---------
---------
---------
---------
-PPPPPPPP
-RNBQKBNR";
 		let mut board = Board::new();
 		assert_eq!(0, board.castle_moves().len());
 
@@ -513,6 +509,44 @@ RNBQKBNR";
 
 		board.grid[0][1] = None;
 		assert!(board.castle_moves().contains(&Move::from_str("e8c8").unwrap()));
+	}
+const SIMPLE: &str = "\
+r---k--r
+pppppppp
+--------
+--------
+--------
+--------
+PPPPPPPP
+R---K--R";
+	#[test]
+	fn moving_rook_disallows_castling(){
+		let mut board = Board::custom(SIMPLE, White);
+		let c = board.castles[board.counter as usize];
+		assert!(c.0 && c.1 && c.2 && c.3);
+
+		board.move_piece(&Move::from_str("h1g1").unwrap());
+		let c = board.castles[board.counter as usize];
+		assert!( ! c.0);
+
+		board.move_piece(&Move::from_str("a8d8").unwrap());
+		board.move_piece(&Move::from_str("a1c1").unwrap());
+
+		let c = board.castles[board.counter as usize];
+		assert!( !c.0 && !c.1 && c.2 && !c.3);
+	}
+
+	#[test]
+	fn moving_king_disallows_castling(){
+		let mut board = Board::custom(SIMPLE, White);
+		board.move_piece(&Move::from_str("e1f1").unwrap());
+
+		let c = board.castles[board.counter as usize];
+		assert!(!c.0 && !c.1 && c.2 && c.3);
+
+		board.move_piece(&Move::from_str("e8d8").unwrap());
+		let c = board.castles[board.counter as usize];
+		assert!(!c.0 && !c.1 && !c.2 && !c.3);
 	}
 }
 

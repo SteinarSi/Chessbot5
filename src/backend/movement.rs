@@ -24,6 +24,7 @@ impl Move{
 		Move{from: Position{x: filefrom, y: rankfrom}, to: Position{x: fileto, y: rankto}, value: None}
 	}
 
+	//Parser en streng på formen "e2e4". "e4", "e2-e4", "Pe4" er ikke gyldig og gir None.
 	pub fn from_str(s: &str) -> Option<Move>{
 		let mut l = s.chars();
 		let filefrom = (l.next()? as u32 - 97) as usize;

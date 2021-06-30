@@ -83,7 +83,30 @@ impl Board{
 			for x in 0..BOARD_SIZE{
 				if let Some(p) = &self.grid[y][x]{
 					if p.color == color{
-						if p.can_run(){
+						if p.piecetype == PieceType::Pawn{
+							for dir in p.directions(){
+								let to_y = y as i8 + dir.1;
+								if dir.0 == 0 {
+									if to_y < 8 && to_y >= 0 && self.grid[to_y as usize][x] == None{
+										ret.push(Move::new(x, y, x, to_y as usize));
+										if y == 6 && color == Color::White && self.grid[(to_y - 1) as usize][x] == None{
+											ret.push(Move::new(x, y, x, (to_y - 1) as usize));
+										} else if y == 1 && color == Color::Black && self.grid[(to_y + 1) as usize][x] == None{
+											ret.push(Move::new(x, y, x, (to_y + 1) as usize));
+										}
+									}
+								}
+								else{
+									let to_x = x as i8 + dir.0;
+									if to_x >= 0 && to_x < 8{
+										if let Some(t) = self.grid[to_y as usize][to_x as usize]{
+											if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+										}
+									}
+								}
+							}
+						}
+						else if p.can_run(){
 							for dir in p.directions(){
 								let mut to_x = x as i8 + dir.0;
 								let mut to_y = y as i8 + dir.1;
@@ -171,6 +194,10 @@ impl fmt::Debug for TombStone{
 }
 
 
+
+///////////////////////////////
+//           TESTS           //
+///////////////////////////////
 #[cfg(test)]
 mod test_move_generation{
 	use super::*;
@@ -187,13 +214,100 @@ mod test_move_generation{
 	#[test]
 	fn just_a_king(){
 		let mut board = Board::custom(empty, Color::White);
-		board.grid[7][4] = Some(Piece{piecetype: PieceType::King, color: Color::White});
+		board.grid[7][4] = Piece::new('K');
 		let moves = board.moves();
 		let expected: Vec<Move> = ["e1d2", "e1e2", "e1f2", "e1f1", "e1d1"].iter().map(|s| Move::from_str(s).unwrap()).collect();
 
 		assert_eq!(moves, expected);
 	}
 
+	#[test]
+	fn just_a_knight(){
+		let mut board = Board::custom(empty, Color::White);
+		board.grid[0][1] = Piece::new('N');
+		let actual = board.moves();
+		let expected: Vec<Move> = ["b8c6", "b8d7", "b8a6"].iter().map(|s| Move::from_str(s).unwrap()).collect();
+
+		assert_eq!(expected, actual);
+	}
+
+	#[test]
+	fn just_a_bishop(){
+		let mut board = Board::custom(empty, Color::White);
+		board.grid[1][1] = Piece::new('B');
+		let actual = board.moves();
+		let expected: Vec<Move> = ["b7a8", "b7c8", "b7c6", "b7d5", "b7e4", "b7f3", "b7g2", "b7h1", "b7a6"].iter().map(|s| Move::from_str(s).unwrap()).collect();
+
+		assert_eq!(expected, actual);
+	}
+
+	#[test]
+	fn can_capture_enemy(){
+		let mut board = Board::custom(empty, Color::White);
+		board.grid[6][0] = Piece::new('p');
+		board.grid[6][1] = Piece::new('p');
+		board.grid[7][0] = Piece::new('Q');
+		let moves = board.moves();
+
+		assert!(moves.contains(&Move::from_str("a1a2").unwrap()));
+		assert!(moves.contains(&Move::from_str("a1b2").unwrap()));
+
+		assert!( ! moves.contains(&Move::from_str("a1a3").unwrap())); //Kan ikke hoppe over folk
+	}
+
+	#[test]
+	fn can_not_capture_own_piece(){
+		let mut board = Board::custom(empty, Color::Black);
+		board.grid[0][4] = Piece::new('n');
+		board.grid[0][3] = Piece::new('q');
+		let moves = board.moves();
+
+		assert!( ! moves.contains(&Move::from_str("d8e8").unwrap())); //Kan ikke ta egen brikke
+		assert!( ! moves.contains(&Move::from_str("d8f8").unwrap())); //Kan ikke hoppe over egen brikke
+		assert!(moves.contains(&Move::from_str("d8c8").unwrap()));   //Kan derimot gjøre vanlige trekk.
+	}
+
+	#[test]
+	fn just_a_pawn(){
+		let mut board = Board::custom(empty, Color::White);
+		board.grid[4][3] = Piece::new('P');
+		let actual = board.moves();
+		let expected = vec![Move::from_str("d4d5").unwrap()];
+		assert_eq!(expected, actual);
+	}
+
+	#[test]
+	fn can_go_two_squares(){
+		let mut board = Board::custom(empty, Color::White);
+		board.grid[6][0] = Piece::new('P');
+		let actual = board.moves();
+		let expected = vec![Move::from_str("a2a3").unwrap(), Move::from_str("a2a4").unwrap()];
+
+		assert_eq!(expected, actual);
+	}
+
+	#[test]
+	fn black_pawns_go_backwards(){
+		let mut board = Board::custom(empty, Color::Black);
+		board.grid[1][4] = Piece::new('p');
+		let actual = board.moves();
+		let expected = vec![Move::from_str("e7e6").unwrap(), Move::from_str("e7e5").unwrap()];
+
+		assert_eq!(expected, actual);
+	}
+
+	#[test]
+	fn pawns_capture_diagonally(){
+		let mut board = Board::custom(empty, Color::White);
+		board.grid[6][1] = Piece::new('P');
+		board.grid[5][0] = Piece::new('p'); //Fiendtlig bonde i rekkevidde
+		board.grid[5][2] = Piece::new('P'); //Vennlig bonde i rekkevidde, kan ikke ta denne
+
+		let actual = board.moves();
+		let expected: Vec<Move> = vec!["c3c4", "b2a3", "b2b3", "b2b4"].iter().map(|s| Move::from_str(s).unwrap()).collect();
+
+		assert_eq!(expected, actual);
+	}
 }
 
 #[cfg(test)]

@@ -21,7 +21,8 @@ pub struct Board{
 	score: Score,
 	counter: u16,
 	graveyard: Vec<TombStone>,
-	moves: Vec<Move>
+	moves: Vec<Move>,
+	passants: Vec<Option<i8>>
 
 	//TODO blir mange flere felt her etter hvert.
 }
@@ -39,7 +40,8 @@ impl Board{
 		Board::custom(DEFAULT_BOARD, Color::White)
 	}
 
-	pub fn move_piece(&mut self, m: Move){
+	pub fn move_piece(&mut self, m: &Move){
+		println!("{}", m.to_string());
 		let pie = self.get_piece_at(&m.from);
 		if let Some(target) = self.get_piece_at(&m.to){
 			self.graveyard.push(TombStone{piece: target, position: m.to, date: self.counter})
@@ -47,7 +49,14 @@ impl Board{
 		self.grid[m.from.y][m.from.x] = None;
 		self.grid[m.to.y][m.to.x] = pie;
 
-		self.moves.push(m);
+		let mut passant = None;
+		if pie.unwrap().piecetype == PieceType::Pawn{
+			if (m.from.y as i8 - m.to.y as i8).abs() == 2{
+				passant = Some(m.from.x as i8);
+			}
+		}
+		self.passants.push(passant);
+		self.moves.push(*m);
 		self.counter += 1;
 		self.color_to_move = self.color_to_move.opposite();
 	}
@@ -57,6 +66,7 @@ impl Board{
 
 		self.counter -= 1;
 		self.color_to_move = self.color_to_move.opposite();
+		self.passants.pop();
 
 		let pie = self.get_piece_at(&m.to);
 		self.grid[m.from.y][m.from.x] = pie;
@@ -101,6 +111,8 @@ impl Board{
 									if to_x >= 0 && to_x < 8{
 										if let Some(t) = self.grid[to_y as usize][to_x as usize]{
 											if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+										} else if let Some(c) = self.passants[self.counter as usize]{
+											if c == to_x { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
 										}
 									}
 								}
@@ -158,7 +170,7 @@ impl Board{
 				x = 0;
 			}
 		}
-		Board{grid, color_to_move: c, score: 0, counter: 0, graveyard: Vec::new(), moves: Vec::new()}
+		Board{grid, color_to_move: c, score: 0, counter: 0, graveyard: Vec::new(), moves: Vec::new(), passants: vec![None]}
 	}
 
 
@@ -183,7 +195,7 @@ impl ToString for Board{
 
 impl fmt::Debug for Board{
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "grid:\n{}counter: {}\ngraveyard: {:?}\n, color: {}", self.to_string(), self.counter, self.graveyard, self.color_to_move)
+		write!(f, "grid:\n{}counter: {}\ngraveyard: {:?}\n, color: {}\n passants: {:?}", self.to_string(), self.counter, self.graveyard, self.color_to_move, self.passants)
 	}
 }
 
@@ -308,6 +320,40 @@ mod test_move_generation{
 
 		assert_eq!(expected, actual);
 	}
+
+	#[test]
+	fn en_passant(){
+		let mut board = Board::custom(empty, Color::White);
+		board.grid[6][7] = Piece::new('P');
+		board.grid[4][6] = Piece::new('p');
+
+		board.move_piece(&Move::from_str("h2h4").unwrap());
+
+		let actual = board.moves();
+		let expected = vec![Move::from_str("g4g3").unwrap(), Move::from_str("g4h3").unwrap()];
+
+		assert_eq!(expected, actual);
+	}
+
+	#[test]
+	fn en_croissant(){
+		let mut board = Board::custom(empty, Color::Black);
+		board.grid[3][4] = Piece::new('P');
+		board.grid[1][3] = Piece::new('p');
+		board.grid[6][0] = Piece::new('P');
+		board.grid[1][0] = Piece::new('p');
+
+		board.move_piece(&Move::from_str("d7d5").unwrap());
+
+		assert!(board.moves().contains(&Move::from_str("e5d6").unwrap()));
+
+		board.move_piece(&Move::from_str("a2a3").unwrap()); //Trekk som ikke gjør noe
+		board.move_piece(&Move::from_str("a7a6").unwrap()); //Trekk som ikke gjør noe
+		
+		//Nå skal det ikke lenger være mulig å ta en passant
+		assert!( ! board.moves().contains(&Move::from_str("e5d6").unwrap()));		
+
+	}
 }
 
 #[cfg(test)]
@@ -346,7 +392,7 @@ RNBQKBNR";
 	fn just_e4(){
 		let mut board = Board::new();
 		let expected = Board::custom(e4, Color::Black);
-		board.move_piece(Move::new(4, 6, 4, 4));
+		board.move_piece(&Move::new(4, 6, 4, 4));
 
 		assert_eq!(board.grid, expected.grid);
 	}
@@ -354,7 +400,7 @@ RNBQKBNR";
 	#[test]
 	fn e4_and_back(){
 		let mut board = Board::new();
-		board.move_piece(Move::new(4, 6, 4, 4));
+		board.move_piece(&Move::new(4, 6, 4, 4));
 		board.go_back();
 		assert_eq!(board, Board::new());
 	}
@@ -363,10 +409,10 @@ RNBQKBNR";
 	fn e4_c5_and_back(){
 		let mut board = Board::new();
 
-		board.move_piece(Move::new(4, 6, 4, 4));
+		board.move_piece(&Move::new(4, 6, 4, 4));
 		assert_eq!(board.grid, Board::custom(e4, Color::Black).grid);
 
-		board.move_piece(Move::new(2, 1, 2, 3));
+		board.move_piece(&Move::new(2, 1, 2, 3));
 		assert_eq!(board.grid, Board::custom(e4c5, Color::White).grid);
 
 		board.go_back();
@@ -390,7 +436,7 @@ RNBQKBNR";
 		
 		let mut board = Board::new();
 
-		board.move_piece(Move::new(4, 6, 4, 1));
+		board.move_piece(&Move::new(4, 6, 4, 1));
 		assert_eq!(board.grid, Board::custom(e2e7, Color::Black).grid);
 
 		board.go_back();
@@ -407,14 +453,14 @@ RNBQKBNR";
 	fn e4_c5_back_c6_back_back(){
 		let mut board = Board::new();
 
-		board.move_piece(Move::new(4, 6, 4, 4));
+		board.move_piece(&Move::new(4, 6, 4, 4));
 		assert_eq!(board.grid, Board::custom(e4, Color::Black).grid);
 
-		board.move_piece(Move::new(2, 1, 2, 3));
+		board.move_piece(&Move::new(2, 1, 2, 3));
 		assert_eq!(board.grid, Board::custom(e4c5, Color::White).grid);
 
 		board.go_back();
-		board.move_piece(Move::new(2, 1, 2, 2));
+		board.move_piece(&Move::new(2, 1, 2, 2));
 		assert_eq!(board.grid, Board::custom(e4c6, Color::White).grid);
 	}
 }

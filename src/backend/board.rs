@@ -42,8 +42,8 @@ impl Board{
 
 	pub fn move_piece(&mut self, m: &Move){
 		println!("{}", m.to_string());
-		let pie = self.get_piece_at(&m.from);
-		if let Some(target) = self.get_piece_at(&m.to){
+		let pie = self.get_clone_at(&m.from);
+		if let Some(target) = self.get_clone_at(&m.to){
 			self.graveyard.push(TombStone{piece: target, position: m.to, date: self.counter})
 		}
 		self.grid[m.from.y][m.from.x] = None;
@@ -68,7 +68,7 @@ impl Board{
 		self.color_to_move = self.color_to_move.opposite();
 		self.passants.pop();
 
-		let pie = self.get_piece_at(&m.to);
+		let pie = self.get_clone_at(&m.to);
 		self.grid[m.from.y][m.from.x] = pie;
 		self.grid[m.to.y][m.to.x] = None;
 
@@ -97,11 +97,11 @@ impl Board{
 							for dir in p.directions(){
 								let to_y = y as i8 + dir.1;
 								if dir.0 == 0 {
-									if to_y < 8 && to_y >= 0 && self.grid[to_y as usize][x] == None{
+									if to_y < 8 && to_y >= 0 && self.get_reference_at(x, to_y as usize) == &None{
 										ret.push(Move::new(x, y, x, to_y as usize));
-										if y == 6 && color == Color::White && self.grid[(to_y - 1) as usize][x] == None{
+										if y == 6 && color == Color::White && self.get_reference_at(x, (to_y-1) as usize) == &None{
 											ret.push(Move::new(x, y, x, (to_y - 1) as usize));
-										} else if y == 1 && color == Color::Black && self.grid[(to_y + 1) as usize][x] == None{
+										} else if y == 1 && color == Color::Black && self.get_reference_at(x, (to_y+1) as usize) == &None{
 											ret.push(Move::new(x, y, x, (to_y + 1) as usize));
 										}
 									}
@@ -109,7 +109,7 @@ impl Board{
 								else{
 									let to_x = x as i8 + dir.0;
 									if to_x >= 0 && to_x < 8{
-										if let Some(t) = self.grid[to_y as usize][to_x as usize]{
+										if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 											if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
 										} else if let Some(c) = self.passants[self.counter as usize]{
 											if c == to_x { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
@@ -124,7 +124,7 @@ impl Board{
 								let mut to_y = y as i8 + dir.1;
 								loop{
 									if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { break; }
-									if let Some(t) = self.grid[to_y as usize][to_x as usize]{
+									if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 										if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
 										break;
 									}
@@ -139,7 +139,7 @@ impl Board{
 								let to_x = x as i8 + dir.0;
 								let to_y = y as i8 + dir.1;
 								if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { continue; }
-								if let Some(t) = self.grid[to_y as usize][to_x as usize]{
+								if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 									if t.color == color { continue; }
 								}
 								ret.push(Move::new(x, y, to_x as usize, to_y as usize));
@@ -153,8 +153,12 @@ impl Board{
 		ret
 	}
 
-	fn get_piece_at(&self, p: &Position) -> Option<Piece>{
+	fn get_clone_at(&self, p: &Position) -> Option<Piece>{
 		self.grid[p.y][p.x].clone()
+	}
+
+	fn get_reference_at(&self, x: usize, y: usize) -> &Option<Piece>{
+		&self.grid[y][x]
 	}
 
 	fn custom(s: &str, c: Color) -> Self{

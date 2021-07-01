@@ -57,6 +57,9 @@ impl Board{
 				passant = Some(m.from.x as i8);
 			}
 		}
+		if pie.unwrap().piecetype == PieceType::King{
+			self.move_rook_if_castling(m);
+		}
 		self.update_castle(m);
 		self.passants.push(passant);
 		self.moves.push(*m);
@@ -73,6 +76,9 @@ impl Board{
 		self.passants.pop();
 
 		let pie = self.get_clone_at(&m.to);
+		if pie.unwrap().piecetype == PieceType::King{
+			self.move_rook_if_castling(&m);
+		}
 		self.grid[m.from.y][m.from.x] = pie;
 		self.grid[m.to.y][m.to.x] = None;
 
@@ -177,6 +183,16 @@ impl Board{
 			}
 		}
 		ret
+	}
+
+	fn move_rook_if_castling(&mut self, m: &Move){
+		match (m.from.x, m.from.y, m.to.x, m.to.y) {
+			(4, 7, 6, 7) => { self.grid[7].swap(7, 5); },
+			(4, 7, 2, 7) => { self.grid[7].swap(0, 3); },
+			(4, 0, 6, 0) => { self.grid[0].swap(7, 5); },
+			(4, 0, 2, 0) => { self.grid[0].swap(0, 3); },
+			_ => {}
+		}
 	}
 
 	fn get_clone_at(&self, p: &Position) -> Option<Piece>{
@@ -568,6 +584,44 @@ R---K--R";
 		board.move_piece(&Move::from_str("e8d8").unwrap());
 		let c = board.castles[board.counter as usize];
 		assert!(!c.0 && !c.1 && !c.2 && !c.3);
+	}
+
+	#[test]
+	fn castling_also_moves_the_rook(){
+		let mut board = Board::custom(SIMPLE, White);
+
+		board.move_piece(&Move::from_str("e1g1").unwrap());
+		assert_eq!(board.get_reference_at(4, 7), &None);
+		assert_eq!(board.get_reference_at(7, 7), &None);
+		assert_eq!(board.get_reference_at(6, 7), &Piece::new('K'));
+		assert_eq!(board.get_reference_at(5, 7), &Piece::new('R'));
+
+		board.move_piece(&Move::from_str("e8c8").unwrap());
+		assert_eq!(board.get_reference_at(0, 0), &None);
+		assert_eq!(board.get_reference_at(1, 0), &None);
+		assert_eq!(board.get_reference_at(4, 0), &None);
+		assert_eq!(board.get_reference_at(3, 0), &Piece::new('r'));
+		assert_eq!(board.get_reference_at(2, 0), &Piece::new('k'));
+
+		board.go_back();
+		board.go_back();
+		assert_eq!(board.get_reference_at(4, 7), &Piece::new('K'));
+		assert_eq!(board.get_reference_at(7, 7), &Piece::new('R'));
+		assert_eq!(board.get_reference_at(6, 7), &None);
+		assert_eq!(board.get_reference_at(5, 7), &None);
+
+		board.move_piece(&Move::from_str("e1c1").unwrap());
+		assert_eq!(board.get_reference_at(0, 7), &None);
+		assert_eq!(board.get_reference_at(1, 7), &None);
+		assert_eq!(board.get_reference_at(2, 7), &Piece::new('K'));
+		assert_eq!(board.get_reference_at(3, 7), &Piece::new('R'));
+		assert_eq!(board.get_reference_at(4, 7), &None);
+
+		board.move_piece(&Move::from_str("e8g8").unwrap());
+		assert_eq!(board.get_reference_at(7, 0), &None);
+		assert_eq!(board.get_reference_at(4, 0), &None);
+		assert_eq!(board.get_reference_at(5, 0), &Piece::new('r'));
+		assert_eq!(board.get_reference_at(6, 0), &Piece::new('k'));
 	}
 }
 

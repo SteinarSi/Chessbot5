@@ -95,66 +95,87 @@ impl Board{
 
 		for y in 0..BOARD_SIZE{
 			for x in 0..BOARD_SIZE{
-				if let Some(p) = &self.grid[y][x]{
+				if let Some(p) = self.get_reference_at(x, y){
 					if p.color == color{
 						if p.piecetype == PieceType::Pawn{
-							for dir in p.directions(){
-								let to_y = y as i8 + dir.1;
-								if dir.0 == 0 {
-									if to_y < 8 && to_y >= 0 && self.get_reference_at(x, to_y as usize) == &None{
-										ret.push(Move::new(x, y, x, to_y as usize));
-										if y == 6 && color == White && self.get_reference_at(x, (to_y-1) as usize) == &None{
-											ret.push(Move::new(x, y, x, (to_y - 1) as usize));
-										} else if y == 1 && color == Black && self.get_reference_at(x, (to_y+1) as usize) == &None{
-											ret.push(Move::new(x, y, x, (to_y + 1) as usize));
-										}
-									}
-								}
-								else{
-									let to_x = x as i8 + dir.0;
-									if to_x >= 0 && to_x < 8{
-										if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
-											if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
-										} else if let Some(c) = self.passants[self.counter as usize]{
-											if c == to_x { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
-										}
-									}
-								}
-							}
+							ret.append(&mut self.pawn_moves(x, y, p));
 						}
 						else if p.can_run(){
-							for dir in p.directions(){
-								let mut to_x = x as i8 + dir.0;
-								let mut to_y = y as i8 + dir.1;
-								loop{
-									if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { break; }
-									if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
-										if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
-										break;
-									}
-									ret.push(Move::new(x, y, to_x as usize, to_y as usize));
-									to_x += dir.0;
-									to_y += dir.1;
-								}
-							}
+							ret.append(&mut self.running_moves(x, y, p));
 						}
 						else{
-							for dir in p.directions(){
-								let to_x = x as i8 + dir.0;
-								let to_y = y as i8 + dir.1;
-								if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { continue; }
-								if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
-									if t.color == color { continue; }
-								}
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize));
-							}
+							ret.append(&mut self.walking_moves(x, y, p));
 						}
-
 					}
 				}
 			}
 		}
 		ret.append(&mut self.castle_moves());
+		ret
+	}
+
+	fn walking_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
+		let mut ret = Vec::new();
+		let color = self.color_to_move;
+		for dir in p.directions(){
+			let to_x = x as i8 + dir.0;
+			let to_y = y as i8 + dir.1;
+			if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { continue; }
+			if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
+				if t.color == color { continue; }
+			}
+			ret.push(Move::new(x, y, to_x as usize, to_y as usize));
+		}
+		ret
+	}
+
+	//Trekkene til alle brikker som kan gå flere skritt om gangen.
+	fn running_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
+		let mut ret = Vec::new();
+		let color = self.color_to_move;
+		for dir in p.directions(){
+			let mut to_x = x as i8 + dir.0;
+			let mut to_y = y as i8 + dir.1;
+			loop{
+				if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { break; }
+				if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
+					if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+					break;
+				}
+				ret.push(Move::new(x, y, to_x as usize, to_y as usize));
+				to_x += dir.0;
+				to_y += dir.1;
+			}
+		}
+		ret
+	}
+
+	//Alle bondetrekk
+	fn pawn_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
+		let mut ret = Vec::new();
+		for dir in p.directions(){
+			let to_y = y as i8 + dir.1;
+			if dir.0 == 0 {
+				if to_y < 8 && to_y >= 0 && self.get_reference_at(x, to_y as usize) == &None{
+					ret.push(Move::new(x, y, x, to_y as usize));
+					if y == 6 && self.color_to_move == White && self.get_reference_at(x, (to_y-1) as usize) == &None{
+						ret.push(Move::new(x, y, x, (to_y - 1) as usize));
+					} else if y == 1 && self.color_to_move == Black && self.get_reference_at(x, (to_y+1) as usize) == &None{
+						ret.push(Move::new(x, y, x, (to_y + 1) as usize));
+					}
+				}
+			}
+			else{
+				let to_x = x as i8 + dir.0;
+				if to_x >= 0 && to_x < 8{
+					if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
+						if t.color != self.color_to_move { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+					} else if let Some(c) = self.passants[self.counter as usize]{
+						if c == to_x { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+					}
+				}
+			}
+		}
 		ret
 	}
 

@@ -19,7 +19,7 @@ pub struct Board{
 	grid: [[Option<Piece>; BOARD_SIZE]; BOARD_SIZE],
 	color_to_move: Color,
 	score: Score,
-	counter: u16,
+	counter: usize,
 	graveyard: Vec<TombStone>,
 	moves: Vec<Move>,
 	passants: Vec<Option<i8>>,
@@ -32,7 +32,7 @@ pub struct Board{
 #[derive(PartialEq)]
 struct TombStone{
 	piece: Piece,
-	date: u16,
+	date: usize,
 	position: Position
 }
 //             w short|w long|b short|b long
@@ -44,20 +44,36 @@ impl Board{
 	}
 
 	pub fn move_piece(&mut self, m: &Move){
-		let pie = self.get_clone_at(&m.from);
+		let pie = self.get_clone_at(&m.from).unwrap();
 		if let Some(target) = self.get_clone_at(&m.to){
 			self.graveyard.push(TombStone{piece: target, position: m.to, date: self.counter})
 		}
 		self.grid[m.from.y][m.from.x] = None;
-		self.grid[m.to.y][m.to.x] = pie;
+		self.grid[m.to.y][m.to.x] = Some(pie);
 
 		let mut passant = None;
-		if pie.unwrap().piecetype == PieceType::Pawn{
+		if pie.piecetype == PieceType::Pawn{
 			if (m.from.y as i8 - m.to.y as i8).abs() == 2{
 				passant = Some(m.from.x as i8);
 			}
+			if let Some(ps) = self.passants[self.counter]{
+				if m.to.x == ps as usize {
+					if m.to.y == 2 {
+						let pos = Position{x: m.to.x, y: 3};
+						let target = self.get_clone_at(&pos).unwrap();
+						self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
+						self.grid[3][m.to.x] = None;
+					}
+					if m.to.y == 5 {
+						let pos = Position{x: m.to.x, y: 4};
+						let target = self.get_clone_at(&pos).unwrap();
+						self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
+						self.grid[4][m.to.x] = None;
+					}
+				}
+			}
 		}
-		if pie.unwrap().piecetype == PieceType::King{
+		if pie.piecetype == PieceType::King{
 			self.move_rook_if_castling(m);
 		}
 		self.update_castle(m);
@@ -93,8 +109,7 @@ impl Board{
 	}
 
 	//Genererer en liste av lovlige trekk.
-	//TODO: Denne tar ennå ikke hensyn til rokader, en passant, promotering, eller om trekket setter kongen i sjakk.
-	//TODO: Bønder funker heller ikke.
+	//TODO: Denne tar ennå ikke hensyn til promotering, eller om trekket setter kongen i sjakk.
 	pub fn moves(&self) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let color = self.color_to_move;
@@ -176,7 +191,7 @@ impl Board{
 				if to_x >= 0 && to_x < 8{
 					if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 						if t.color != self.color_to_move { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
-					} else if let Some(c) = self.passants[self.counter as usize]{
+					} else if let Some(c) = self.passants[self.counter]{
 						if c == to_x { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
 					}
 				}
@@ -462,6 +477,30 @@ mod test_move_generation{
 		
 		//Nå skal det ikke lenger være mulig å ta en passant
 		assert!( ! board.moves().contains(&Move::from_str("e5d6").unwrap()));		
+	}
+
+	#[test]
+	fn google_en_passant(){
+		let mut board = Board::custom(empty, White);
+		board.grid[6][0] = Piece::new('P');
+		board.grid[4][1] = Piece::new('p');
+		
+		board.move_piece(&Move::from_str("a2a4").unwrap());
+		board.move_piece(&Move::from_str("b4a3").unwrap());
+
+		assert_eq!(board.get_reference_at(0, 4), &None);
+	}
+
+	#[test]
+	fn holy_hell(){
+		let mut board = Board::custom(empty, Black);
+		board.grid[1][3] = Piece::new('p');
+		board.grid[3][4] = Piece::new('P');
+
+		board.move_piece(&Move::from_str("d7d5").unwrap());
+		board.move_piece(&Move::from_str("e5d6").unwrap());
+
+		assert_eq!(board.get_reference_at(3, 3), &None);
 	}
 
 }

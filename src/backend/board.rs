@@ -51,27 +51,11 @@ impl Board{
 		self.grid[m.from.y][m.from.x] = None;
 		self.grid[m.to.y][m.to.x] = Some(pie);
 
-		let mut passant = None;
+		let passant;
 		if pie.piecetype == PieceType::Pawn{
-			if (m.from.y as i8 - m.to.y as i8).abs() == 2{
-				passant = Some(m.from.x as i8);
-			}
-			if let Some(ps) = self.passants[self.counter]{
-				if m.to.x == ps as usize {
-					if m.to.y == 2 {
-						let pos = Position{x: m.to.x, y: 3};
-						let target = self.get_clone_at(&pos).unwrap();
-						self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
-						self.grid[3][m.to.x] = None;
-					}
-					if m.to.y == 5 {
-						let pos = Position{x: m.to.x, y: 4};
-						let target = self.get_clone_at(&pos).unwrap();
-						self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
-						self.grid[4][m.to.x] = None;
-					}
-				}
-			}
+			passant = self.handle_pawn_moves(m);
+		}else{
+			passant = None;
 		}
 		if pie.piecetype == PieceType::King{
 			self.move_rook_if_castling(m);
@@ -135,6 +119,39 @@ impl Board{
 		ret
 	}
 
+	//Takler alle spesialtilfeller når en bonde skal flyttes.
+	//Det inkluderer en passant, og promotering.
+	fn handle_pawn_moves(&mut self, m: &Move) -> Option<i8>{
+		let passant;
+		if (m.from.y as i8 - m.to.y as i8).abs() == 2{
+			passant = Some(m.from.x as i8);
+		}else { passant = None; }
+
+		if let Some(ps) = self.passants[self.counter]{
+			if m.to.x == ps as usize {
+				if m.to.y == 2 {
+					let pos = Position{x: m.to.x, y: 3};
+					let target = self.get_clone_at(&pos).unwrap();
+					self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
+					self.grid[3][m.to.x] = None;
+				}
+				if m.to.y == 5 {
+					let pos = Position{x: m.to.x, y: 4};
+					let target = self.get_clone_at(&pos).unwrap();
+					self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
+					self.grid[4][m.to.x] = None;
+				}
+			}
+		}
+
+		if m.promote.is_some(){
+			self.grid[m.to.y][m.to.x] = m.promote;
+		}
+
+		passant
+	}
+
+	//Kongetrekk og hestetrekk, dvs brikker som ikke kan flytte mer enn et skritt om gangen.
 	fn walking_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let color = self.color_to_move;
@@ -145,7 +162,7 @@ impl Board{
 			if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 				if t.color == color { continue; }
 			}
-			ret.push(Move::new(x, y, to_x as usize, to_y as usize));
+			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None));
 		}
 		ret
 	}
@@ -160,10 +177,10 @@ impl Board{
 			loop{
 				if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { break; }
 				if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
-					if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+					if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize, None)); }
 					break;
 				}
-				ret.push(Move::new(x, y, to_x as usize, to_y as usize));
+				ret.push(Move::new(x, y, to_x as usize, to_y as usize, None));
 				to_x += dir.0;
 				to_y += dir.1;
 			}
@@ -178,11 +195,21 @@ impl Board{
 			let to_y = y as i8 + dir.1;
 			if dir.0 == 0 {
 				if to_y < 8 && to_y >= 0 && self.get_reference_at(x, to_y as usize) == &None{
-					ret.push(Move::new(x, y, x, to_y as usize));
+					if to_y == 0 {
+						ret.push(Move::new(x, y, x, to_y as usize, Piece::new('Q')));
+						ret.push(Move::new(x, y, x, to_y as usize, Piece::new('N')));
+					} else if to_y == 7 {
+						ret.push(Move::new(x, y, x, to_y as usize, Piece::new('q')));
+						ret.push(Move::new(x, y, x, to_y as usize, Piece::new('n')));
+					}
+					else{
+						ret.push(Move::new(x, y, x, to_y as usize, None));
+					}
+
 					if y == 6 && self.color_to_move == White && self.get_reference_at(x, (to_y-1) as usize) == &None{
-						ret.push(Move::new(x, y, x, (to_y - 1) as usize));
+						ret.push(Move::new(x, y, x, (to_y - 1) as usize, None));
 					} else if y == 1 && self.color_to_move == Black && self.get_reference_at(x, (to_y+1) as usize) == &None{
-						ret.push(Move::new(x, y, x, (to_y + 1) as usize));
+						ret.push(Move::new(x, y, x, (to_y + 1) as usize, None));
 					}
 				}
 			}
@@ -190,9 +217,20 @@ impl Board{
 				let to_x = x as i8 + dir.0;
 				if to_x >= 0 && to_x < 8{
 					if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
-						if t.color != self.color_to_move { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+						if t.color != self.color_to_move { 
+							if to_y == 0 {
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Piece::new('Q')));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Piece::new('N')));
+							} else if to_y == 7{
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Piece::new('q')));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Piece::new('n')));
+							}
+							else{
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, None));
+							}
+						}
 					} else if let Some(c) = self.passants[self.counter]{
-						if c == to_x { ret.push(Move::new(x, y, to_x as usize, to_y as usize)); }
+						if c == to_x { ret.push(Move::new(x, y, to_x as usize, to_y as usize, None)); }
 					}
 				}
 			}
@@ -232,18 +270,18 @@ impl Board{
 		let castle = self.castles[self.counter as usize];
 		if self.color_to_move == White{
 			if castle.0 && self.get_reference_at(5, 7).is_none() && self.get_reference_at(6, 7).is_none(){
-				ret.push(Move::new(4, 7, 6, 7));
+				ret.push(Move::new(4, 7, 6, 7, None));
 			}
 			if castle.1 && self.get_reference_at(1, 7).is_none() && self.get_reference_at(2, 7).is_none() && self.get_reference_at(3, 7).is_none(){
-				ret.push(Move::new(4, 7, 2, 7));
+				ret.push(Move::new(4, 7, 2, 7, None));
 			}
 		}
 		else{
 			if castle.2 && self.get_reference_at(5, 0).is_none() && self.get_reference_at(6, 0).is_none(){
-				ret.push(Move::new(4, 0, 6, 0));
+				ret.push(Move::new(4, 0, 6, 0, None));
 			}
 			if castle.3 && self.get_reference_at(1, 0).is_none() && self.get_reference_at(2, 0).is_none() && self.get_reference_at(3, 0).is_none(){
-				ret.push(Move::new(4, 0, 2, 0));
+				ret.push(Move::new(4, 0, 2, 0, None));
 			}
 		}
 		ret
@@ -335,11 +373,8 @@ impl fmt::Debug for TombStone{
 ///////////////////////////////
 //           TESTS           //
 ///////////////////////////////
-#[cfg(test)]
-mod test_move_generation{
-	use super::*;
 
-	const empty: &str = "\
+const empty: &str = "\
 --------
 --------
 --------
@@ -348,6 +383,11 @@ mod test_move_generation{
 --------
 --------
 --------";
+
+#[cfg(test)]
+mod test_move_generation{
+	use super::*;
+
 	#[test]
 	fn just_a_king(){
 		let mut board = Board::custom(empty, White);
@@ -412,6 +452,11 @@ mod test_move_generation{
 		let expected = vec![Move::from_str("d4d5").unwrap()];
 		assert_eq!(expected, actual);
 	}
+}
+
+#[cfg(test)]
+mod pawn_tests{
+	use super::*;
 
 	#[test]
 	fn can_go_two_squares(){
@@ -501,6 +546,36 @@ mod test_move_generation{
 		board.move_piece(&Move::from_str("e5d6").unwrap());
 
 		assert_eq!(board.get_reference_at(3, 3), &None);
+	}
+
+	#[test]
+	fn can_promote_to_queen(){
+		let mut board = Board::custom(empty, White);
+		board.grid[1][0] = Piece::new('P');
+		board.move_piece(&Move::from_str("a7a8Q").unwrap());
+
+		assert_eq!(board.get_reference_at(0, 0), &Piece::new('Q'));
+	}
+
+	#[test]
+	fn can_promote_to_knight(){
+		let mut board = Board::custom(empty, White);
+		board.grid[1][0] = Piece::new('P');
+		board.move_piece(&Move::from_str("a7a8N").unwrap());
+
+		assert_eq!(board.get_reference_at(0, 0), &Piece::new('N'));
+	}
+
+	#[test]
+	fn can_undo_promotion(){
+		let mut board = Board::custom(empty, White);
+		board.grid[1][0] = Piece::new('P');
+
+		board.move_piece(&Move::from_str("a7a8").unwrap());
+		board.go_back();
+
+		assert_eq!(board.get_reference_at(0, 0), &None);
+		assert_eq!(board.get_reference_at(0, 1), &Piece::new('P'));
 	}
 
 }
@@ -700,7 +775,7 @@ RNBQKBNR";
 	fn just_e4(){
 		let mut board = Board::new();
 		let expected = Board::custom(e4, Black);
-		board.move_piece(&Move::new(4, 6, 4, 4));
+		board.move_piece(&Move::from_str("e2e4").unwrap());
 
 		assert_eq!(board.grid, expected.grid);
 	}
@@ -708,7 +783,7 @@ RNBQKBNR";
 	#[test]
 	fn e4_and_back(){
 		let mut board = Board::new();
-		board.move_piece(&Move::new(4, 6, 4, 4));
+		board.move_piece(&Move::from_str("e2e4").unwrap());
 		board.go_back();
 		assert_eq!(board, Board::new());
 	}
@@ -717,10 +792,10 @@ RNBQKBNR";
 	fn e4_c5_and_back(){
 		let mut board = Board::new();
 
-		board.move_piece(&Move::new(4, 6, 4, 4));
+		board.move_piece(&Move::from_str("e2e4").unwrap());
 		assert_eq!(board.grid, Board::custom(e4, Black).grid);
 
-		board.move_piece(&Move::new(2, 1, 2, 3));
+		board.move_piece(&Move::from_str("c7c5").unwrap());
 		assert_eq!(board.grid, Board::custom(e4c5, White).grid);
 
 		board.go_back();
@@ -744,7 +819,7 @@ RNBQKBNR";
 		
 		let mut board = Board::new();
 
-		board.move_piece(&Move::new(4, 6, 4, 1));
+		board.move_piece(&Move::from_str("e2e7").unwrap());
 		assert_eq!(board.grid, Board::custom(e2e7, Black).grid);
 
 		board.go_back();
@@ -761,14 +836,18 @@ RNBQKBNR";
 	fn e4_c5_back_c6_back_back(){
 		let mut board = Board::new();
 
-		board.move_piece(&Move::new(4, 6, 4, 4));
+		board.move_piece(&Move::from_str("e2e4").unwrap());
 		assert_eq!(board.grid, Board::custom(e4, Black).grid);
 
-		board.move_piece(&Move::new(2, 1, 2, 3));
+		board.move_piece(&Move::from_str("c7c5").unwrap());
 		assert_eq!(board.grid, Board::custom(e4c5, White).grid);
 
 		board.go_back();
-		board.move_piece(&Move::new(2, 1, 2, 2));
+		board.move_piece(&Move::from_str("c7c6").unwrap());
 		assert_eq!(board.grid, Board::custom(e4c6, White).grid);
+
+		board.go_back();
+		board.go_back();
+		assert_eq!(board, Board::new());
 	}
 }

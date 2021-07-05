@@ -18,7 +18,7 @@ RNBQKBNR";
 pub struct Board{
 	grid: [[Option<Piece>; BOARD_SIZE]; BOARD_SIZE],
 	color_to_move: Color,
-	score: Score,
+	scores: Vec<Score>,
 	counter: usize,
 	graveyard: Vec<TombStone>,
 	moves: Vec<Move>,
@@ -158,11 +158,16 @@ impl Board{
 		for dir in p.directions(){
 			let to_x = x as i8 + dir.0;
 			let to_y = y as i8 + dir.1;
+			let from_pos = Position{x, y};
+			let to_pos = Position{x: to_x as usize, y: to_y as usize};
+			let from_value = p.value_at(&from_pos);
 			if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { continue; }
 			if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
-				if t.color == color { continue; }
+				if t.color != color { 
+					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos) + p.value_at(&to_pos) - from_value));
+				} else { continue; }
 			}
-			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None));
+			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
 		}
 		ret
 	}
@@ -171,16 +176,22 @@ impl Board{
 	fn running_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let color = self.color_to_move;
+		let from_pos = Position{x, y};
+		let from_value = p.value_at(&from_pos);
 		for dir in p.directions(){
 			let mut to_x = x as i8 + dir.0;
 			let mut to_y = y as i8 + dir.1;
+			let mut to_pos;
 			loop{
+				to_pos = Position{x: to_x as usize, y: to_y as usize};
 				if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { break; }
 				if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
-					if t.color != color { ret.push(Move::new(x, y, to_x as usize, to_y as usize, None)); }
+					if t.color != color { 
+						ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos) + p.value_at(&to_pos) - from_value)); 
+					}
 					break;
 				}
-				ret.push(Move::new(x, y, to_x as usize, to_y as usize, None));
+				ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
 				to_x += dir.0;
 				to_y += dir.1;
 			}
@@ -191,46 +202,58 @@ impl Board{
 	//Alle bondetrekk
 	fn pawn_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
 		let mut ret = Vec::new();
+		let from_pos = Position{x, y};
+		let from_value = p.value_at(&from_pos);
 		for dir in p.directions(){
 			let to_y = y as i8 + dir.1;
 			if dir.0 == 0 {
+				let to_pos = Position{x, y: to_y as usize};
 				if to_y < 8 && to_y >= 0 && self.get_reference_at(x, to_y as usize) == &None{
 					if to_y == 0 {
-						ret.push(Move::new(x, y, x, to_y as usize, Piece::new('Q')));
-						ret.push(Move::new(x, y, x, to_y as usize, Piece::new('N')));
+						let Q = Piece::new('Q');
+						let N = Piece::new('N');
+						ret.push(Move::new(x, y, x, to_y as usize, Q, Q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
+						ret.push(Move::new(x, y, x, to_y as usize, N, N.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
 					} else if to_y == 7 {
-						ret.push(Move::new(x, y, x, to_y as usize, Piece::new('q')));
-						ret.push(Move::new(x, y, x, to_y as usize, Piece::new('n')));
+						let q = Piece::new('q');
+						let n = Piece::new('n');
+						ret.push(Move::new(x, y, x, to_y as usize, q, q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
+						ret.push(Move::new(x, y, x, to_y as usize, n, n.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
 					}
-					else{
-						ret.push(Move::new(x, y, x, to_y as usize, None));
-					}
+					else { ret.push(Move::new(x, y, x, to_y as usize, None, p.value_at(&to_pos) - from_value)); }
 
 					if y == 6 && self.color_to_move == White && self.get_reference_at(x, (to_y-1) as usize) == &None{
-						ret.push(Move::new(x, y, x, (to_y - 1) as usize, None));
+						ret.push(Move::new(x, y, x, (to_y - 1) as usize, None, p.value_at(&Position{x, y: (to_y - 1) as usize}) - from_value));
 					} else if y == 1 && self.color_to_move == Black && self.get_reference_at(x, (to_y+1) as usize) == &None{
-						ret.push(Move::new(x, y, x, (to_y + 1) as usize, None));
+						ret.push(Move::new(x, y, x, (to_y + 1) as usize, None, p.value_at(&Position{x, y: (to_y + 1) as usize}) - from_value));
 					}
 				}
 			}
 			else{
 				let to_x = x as i8 + dir.0;
+				let to_pos = Position{x: to_x as usize, y: to_y as usize};
 				if to_x >= 0 && to_x < 8{
 					if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 						if t.color != self.color_to_move { 
 							if to_y == 0 {
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Piece::new('Q')));
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Piece::new('N')));
+								let Q = Piece::new('Q');
+								let N = Piece::new('N');
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Q, Q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, N, N.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
 							} else if to_y == 7{
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Piece::new('q')));
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Piece::new('n')));
+								let q = Piece::new('Q');
+								let n = Piece::new('N');
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, q, q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, n, n.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
 							}
 							else{
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, None));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value - t.combined_value_at(&to_pos)));
 							}
 						}
 					} else if let Some(c) = self.passants[self.counter]{
-						if c == to_x { ret.push(Move::new(x, y, to_x as usize, to_y as usize, None)); }
+						if c == to_x { //TODOOO
+							ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, 0)); //TODO
+						} //TODOOOOOOOOOOOO
 					}
 				}
 			}
@@ -265,23 +288,25 @@ impl Board{
 		self.castles.push(next);
 	}
 
+
+	//TOOOOOOOOOOOOOOODDDDDOOOOOOOOOOOOOOOOOOOOO
 	fn castle_moves(&self) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let castle = self.castles[self.counter as usize];
 		if self.color_to_move == White{
 			if castle.0 && self.get_reference_at(5, 7).is_none() && self.get_reference_at(6, 7).is_none(){
-				ret.push(Move::new(4, 7, 6, 7, None));
+				ret.push(Move::new(4, 7, 6, 7, None, 49));
 			}
 			if castle.1 && self.get_reference_at(1, 7).is_none() && self.get_reference_at(2, 7).is_none() && self.get_reference_at(3, 7).is_none(){
-				ret.push(Move::new(4, 7, 2, 7, None));
+				ret.push(Move::new(4, 7, 2, 7, None, 40));
 			}
 		}
 		else{
 			if castle.2 && self.get_reference_at(5, 0).is_none() && self.get_reference_at(6, 0).is_none(){
-				ret.push(Move::new(4, 0, 6, 0, None));
+				ret.push(Move::new(4, 0, 6, 0, None, -49));
 			}
 			if castle.3 && self.get_reference_at(1, 0).is_none() && self.get_reference_at(2, 0).is_none() && self.get_reference_at(3, 0).is_none(){
-				ret.push(Move::new(4, 0, 2, 0, None));
+				ret.push(Move::new(4, 0, 2, 0, None, -40));
 			}
 		}
 		ret
@@ -326,7 +351,10 @@ impl Board{
 				x = 0;
 			}
 		}
-		Board{grid, color_to_move: c, score: 0, counter: 0, graveyard: Vec::new(), moves: Vec::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)]}
+		Board{grid, color_to_move: c, counter: 0, graveyard: Vec::new(), 
+			moves: Vec::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)],
+			scores: vec![0]
+		}
 	}
 
 
@@ -736,6 +764,26 @@ R---K--R";
 		assert_eq!(board.get_reference_at(4, 0), &None);
 		assert_eq!(board.get_reference_at(5, 0), &Piece::new('r'));
 		assert_eq!(board.get_reference_at(6, 0), &Piece::new('k'));
+	}
+
+	//Denne testen er kun for å finne verdien til de forskjellige rokadene, 
+	//siden vi ikke har lov til å finne dem i en const.
+	#[test]
+	fn find_castle_values(){
+	    let K = Piece::new('K').unwrap();
+	    let R = Piece::new('R').unwrap();
+	    let k = Piece::new('k').unwrap();
+	    let r = Piece::new('r').unwrap();
+	    let ws = K.value_at(&Position{x: 6, y: 7}) - K.value_at(&Position{x: 4, y: 7}) 
+	            + R.value_at(&Position{x: 5, y: 7}) - R.value_at(&Position{x: 7, y: 7});
+	    let wl = K.value_at(&Position{x: 2, y: 7}) - K.value_at(&Position{x: 4, y: 7})
+	            + R.value_at(&Position{x: 3, y: 7}) - R.value_at(&Position{x: 0, y: 7});
+        let bs = k.value_at(&Position{x: 6, y: 0}) - k.value_at(&Position{x: 4, y: 0})
+        		+ r.value_at(&Position{x: 5, y: 0}) - r.value_at(&Position{x: 7, y: 0});
+		let bl = k.value_at(&Position{x: 2, y: 0}) - k.value_at(&Position{x: 4, y: 0})
+				+ r.value_at(&Position{x: 3, y: 0}) - r.value_at(&Position{x: 0, y: 0});
+	    println!("White short: {}\nWhite long: {}\nBlack short: {}\nBlack long: {}", ws, wl, bs, bl);
+	    //panic!();
 	}
 }
 

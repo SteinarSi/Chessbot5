@@ -129,12 +129,12 @@ impl fmt::Display for Color{
 impl fmt::Display for PieceType{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		let s = match self{
-			King => "King",
-			Queen => "Queen",
+			King   => "King",
+			Queen  => "Queen",
 			Bishop => "Bishop",
 			Knight => "Knight",
-			Rook => "Rook",
-			Pawn => "Pawn"
+			Rook   => "Rook",
+			Pawn   => "Pawn"
 		};
 		write!(f, "{}", s)
 	}

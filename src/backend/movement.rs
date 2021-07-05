@@ -3,11 +3,12 @@ use std::fmt;
 use std::char;
 use super::piece::Piece;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone)]
 pub struct Move{
 	pub from: Position,
 	pub to: Position,
-	value: Option<Score>,
+	heurestic_value: Score,
+	actual_value: Option<Score>,
 	pub promote: Option<Piece>
 }
 
@@ -22,8 +23,8 @@ pub struct Position{
 impl Move{
 	//Lager et nytt move. NB! Denne bryr seg kun om koordinater, der Origo er oppe til venstre.
 	//Dermed er e1->e2 det samme som (4, 7, 4, 6).
-	pub fn new(filefrom: usize, rankfrom: usize, fileto: usize, rankto: usize, promote: Option<Piece>) -> Self{
-		Move{from: Position{x: filefrom, y: rankfrom}, to: Position{x: fileto, y: rankto}, value: None, promote}
+	pub fn new(filefrom: usize, rankfrom: usize, fileto: usize, rankto: usize, promote: Option<Piece>, heurestic_value: Score) -> Self{
+		Move{from: Position{x: filefrom, y: rankfrom}, to: Position{x: fileto, y: rankto}, actual_value: None, promote, heurestic_value}
 	}
 
 	//Parser en streng på formen "e2e4". "e4", "e2-e4", "Pe4" er ikke gyldig og gir None.
@@ -34,22 +35,32 @@ impl Move{
 		let fileto   = (l.next()? as u32 - 97) as usize;
 		let rankto   = (56 - l.next()? as u32) as usize;
 		match l.next(){
-			None => Some(Move::new(filefrom, rankfrom, fileto, rankto, None)),
-			Some(c) => Some(Move::new(filefrom, rankfrom, fileto, rankto, Piece::new(c)))
+			None => Some(Move::new(filefrom, rankfrom, fileto, rankto, None, 0)),
+			Some(c) => Some(Move::new(filefrom, rankfrom, fileto, rankto, Piece::new(c), 0))
 		}
 		
 	}
 
-	pub fn value(&self) -> Score{
-		match self.value{
+	pub fn actual_value(&self) -> Score{
+		match self.actual_value{
 			None    => { panic!("This move has no associated value."); }
 			Some(v) => v
 		}
 	}
 
-	pub fn set_value(&mut self, s: Score){
-		self.value = Some(s);
+	pub fn heurestic_value(&self) -> Score{
+		self.heurestic_value
 	}
+
+	pub fn set_actual_value(&mut self, s: Score){
+		self.actual_value = Some(s);
+	}
+}
+
+impl PartialEq for Move{
+    fn eq(&self, other: &Self) -> bool {
+        self.from == other.from && self.to == other.to && self.promote == other.promote
+    }
 }
 
 impl ToString for Move{

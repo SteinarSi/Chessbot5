@@ -15,5 +15,5 @@ cargo build --release
 
 To start the program:
 ```
-cargo run
+cargo run --release
 ```

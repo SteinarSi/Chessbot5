@@ -15,7 +15,7 @@ pppppppp
 PPPPPPPP
 RNBQKBNR";
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct Board{
 	grid: [[Option<Piece>; BOARD_SIZE]; BOARD_SIZE],
 	color_to_move: Color,
@@ -30,7 +30,7 @@ pub struct Board{
 }
 
 //Holder styr på hvor og når brikker blir tatt, så de kan respawnes etterpå.
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 struct TombStone{
 	piece: Piece,
 	date: usize,
@@ -154,8 +154,16 @@ impl Board{
 		false
 	}
 
-	fn heurestic_value(&self) -> Score{
+	pub fn heurestic_value(&self) -> Score{
 		self.scores[self.counter]
+	}
+
+	pub fn color_to_move(&self) -> Color{
+		self.color_to_move
+	}
+
+	pub fn counter(&self) -> usize{
+		self.counter
 	}
 
 	//Takler alle spesialtilfeller når en bonde skal flyttes.
@@ -168,13 +176,13 @@ impl Board{
 
 		if let Some(ps) = self.passants[self.counter]{
 			if m.to.x == ps as usize {
-				if m.to.y == 2 {
+				if m.to.y == 2 && self.color_to_move == White {
 					let pos = Position{x: m.to.x, y: 3};
 					let target = self.get_clone_at(&pos).unwrap();
 					self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
 					self.grid[3][m.to.x] = None;
 				}
-				if m.to.y == 5 {
+				if m.to.y == 5 && self.color_to_move == Black {
 					let pos = Position{x: m.to.x, y: 4};
 					let target = self.get_clone_at(&pos).unwrap();
 					self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});

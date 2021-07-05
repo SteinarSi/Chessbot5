@@ -28,17 +28,23 @@ impl Move{
 	}
 
 	//Parser en streng på formen "e2e4". "e4", "e2-e4", "Pe4" er ikke gyldig og gir None.
+	//For å promotere, legg til en karakter om hvilken brikke du vil promotere til på slutten, f. eks "b7a8Q".
 	pub fn from_str(s: &str) -> Option<Move>{
 		let mut l = s.chars();
-		let filefrom = (l.next()? as u32 - 97) as usize;
-		let rankfrom = (56 - l.next()? as u32) as usize;
-		let fileto   = (l.next()? as u32 - 97) as usize;
-		let rankto   = (56 - l.next()? as u32) as usize;
+		let filefrom = (l.next()? as i32 - 97);
+		let rankfrom = (56 - l.next()? as i32);
+		let fileto   = (l.next()? as i32 - 97);
+		let rankto   = (56 - l.next()? as i32);
+		println!("{}:{} - {}:{}", filefrom, rankfrom, fileto, rankto);
+		if [filefrom, rankfrom, fileto, rankto].iter().any(|i| i < &0 || i >= &8) { return None; }
 		match l.next(){
-			None => Some(Move::new(filefrom, rankfrom, fileto, rankto, None, 0)),
-			Some(c) => Some(Move::new(filefrom, rankfrom, fileto, rankto, Piece::new(c), 0))
+			None => Some(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, None, 0)),
+			Some(c) => {
+				if "PRNBQK".to_string().chars().any(|p| p == c) { 
+					Some(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, Piece::new(c), 0))
+			 	}else{ None }
+			}
 		}
-		
 	}
 
 	pub fn actual_value(&self) -> Score{

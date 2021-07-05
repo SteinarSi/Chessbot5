@@ -141,7 +141,7 @@ impl Board{
 
 	pub fn is_legal(&self, m: Move) -> bool{
 		if let Some(p) = self.get_clone_at(&m.from){
-			if p.piecetype == PieceType::Pawn{
+			if self.color_to_move == p.color && p.piecetype == PieceType::Pawn{
 				return self.pawn_moves(m.from.x, m.from.y, &p).contains(&m)
 			}
 			else if p.can_run(){
@@ -538,8 +538,20 @@ mod score_test{
 		let mut board = Board::new();
 		assert_eq!(0, board.heurestic_value());
 
+		board.move_str("e2e4");
+		board.move_str("e7e5");
 
-		//TODO
+		assert_eq!(0, board.heurestic_value());
+
+		board.move_str("b1c3");
+		board.move_str("b8c6");
+
+		assert_eq!(0, board.heurestic_value());
+
+		board.move_str("f1c5");
+		board.move_str("f8c4");
+
+		assert_eq!(0, board.heurestic_value());
 	}
 }
 

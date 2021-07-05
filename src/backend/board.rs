@@ -166,6 +166,33 @@ impl Board{
 		self.counter
 	}
 
+	//TODOOOOO
+	pub fn threat_count(&self, pos: &Position) -> (i32, i32){
+		//println!("\n{}", self.to_string());
+		let mut attackers = 0;
+		let mut defenders = 0;
+		let mut to_x;
+		let mut to_y;
+
+		for dir in &[(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)]{
+			to_x = pos.x as i8 + dir.0;
+			to_y = pos.y as i8 + dir.1;
+			if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue; }
+			if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
+				if p.piecetype == PieceType::Knight{
+					if p.color == self.color_to_move(){
+						attackers += 1;
+					}
+					else {
+						defenders += 1;
+					}
+				}
+			}
+		}
+		//TODOOOO
+		(attackers, defenders)
+	}
+
 	//Takler alle spesialtilfeller når en bonde skal flyttes.
 	//Det inkluderer en passant, og promotering.
 	fn handle_pawn_moves(&mut self, m: &Move) -> Option<i8>{
@@ -553,6 +580,27 @@ mod score_test{
 
 		assert_eq!(0, board.heurestic_value());
 	}
+}
+
+#[cfg(test)]
+mod threat_test{
+	use super::*;
+
+	const three_knights: &str ="\
+--------
+-------
+----n---
+-n---n--
+---Q----
+--------
+--N-----
+--------";
+	#[test]
+	fn three_knights_one_defender(){
+		let board = Board::custom(three_knights, Black);
+		assert_eq!((3, 1), board.threat_count(&Position{x: 3, y: 4}));
+	}
+
 }
 
 #[cfg(test)]

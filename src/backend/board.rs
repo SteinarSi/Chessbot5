@@ -2,6 +2,7 @@ pub use super::piece::{Piece, PieceType, Color, Color::White, Color::Black};
 pub use super::movement::{Move, Score};
 use super::movement::Position;
 use std::fmt;
+use std::io;
 
 const BOARD_SIZE: usize = 8;
 const DEFAULT_BOARD: &str = "\
@@ -60,6 +61,7 @@ impl Board{
 		if pie.piecetype == PieceType::King{
 			self.move_rook_if_castling(m);
 		}
+		self.scores.push(self.scores[self.counter] + m.heurestic_value());
 		self.update_castle(m);
 		self.passants.push(passant);
 		self.moves.push(*m);
@@ -69,7 +71,7 @@ impl Board{
 
 	pub fn go_back(&mut self){
 		let m = self.moves.pop().expect("Cannot go further back!");
-
+		self.scores.pop();
 		self.castles.pop();
 		self.counter -= 1;
 		self.color_to_move = self.color_to_move.opposite();
@@ -93,7 +95,7 @@ impl Board{
 	}
 
 	//Genererer en liste av lovlige trekk.
-	//TODO: Denne tar ennå ikke hensyn til promotering, eller om trekket setter kongen i sjakk.
+	//TODO: Denne tar ennå ikke hensyn til om trekket setter kongen i sjakk.
 	pub fn moves(&self) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let color = self.color_to_move;
@@ -117,6 +119,43 @@ impl Board{
 		}
 		ret.append(&mut self.castle_moves());
 		ret
+	}
+
+	pub fn move_str(&mut self, s: &str) -> Option<()>{
+		let m = Move::from_str(s)?;
+		if ! self.is_legal(m){ return None; }
+		let p = self.get_clone_at(&m.from)?;
+		let m2;
+		if p.piecetype == PieceType::Pawn{
+			m2 = self.pawn_moves(m.from.x, m.from.y, &p).into_iter().find(|m2| *m2==m)?;
+		}
+		else if p.can_run(){
+			m2 = self.running_moves(m.from.x, m.from.y, &p).into_iter().find(|m2| *m2==m)?;
+		}
+		else{
+			m2 = self.running_moves(m.from.x, m.from.y, &p).into_iter().find(|m2| *m2==m)?;
+		}
+		self.move_piece(&m2);
+		Some(())
+	}
+
+	pub fn is_legal(&self, m: Move) -> bool{
+		if let Some(p) = self.get_clone_at(&m.from){
+			if p.piecetype == PieceType::Pawn{
+				return self.pawn_moves(m.from.x, m.from.y, &p).contains(&m)
+			}
+			else if p.can_run(){
+				return self.running_moves(m.from.x, m.from.y, &p).contains(&m)
+			}
+			else{
+				return self.walking_moves(m.from.x, m.from.y, &p).contains(&m)
+			}
+		}
+		false
+	}
+
+	fn heurestic_value(&self) -> Score{
+		self.scores[self.counter]
 	}
 
 	//Takler alle spesialtilfeller når en bonde skal flyttes.
@@ -241,8 +280,8 @@ impl Board{
 								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Q, Q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
 								ret.push(Move::new(x, y, to_x as usize, to_y as usize, N, N.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
 							} else if to_y == 7{
-								let q = Piece::new('Q');
-								let n = Piece::new('N');
+								let q = Piece::new('q');
+								let n = Piece::new('n');
 								ret.push(Move::new(x, y, to_x as usize, to_y as usize, q, q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
 								ret.push(Move::new(x, y, to_x as usize, to_y as usize, n, n.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
 							}
@@ -251,9 +290,10 @@ impl Board{
 							}
 						}
 					} else if let Some(c) = self.passants[self.counter]{
-						if c == to_x { //TODOOO
-							ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, 0)); //TODO
-						} //TODOOOOOOOOOOOO
+						if c == to_x && (self.color_to_move == White && y == 3 || self.color_to_move == Black && y == 4){
+							let passant_pos = Position{x: c as usize, y};
+							ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value - self.get_reference_at(passant_pos.x, passant_pos.y).unwrap().combined_value_at(&passant_pos))); //TODO
+						}
 					}
 				}
 			}
@@ -289,7 +329,6 @@ impl Board{
 	}
 
 
-	//TOOOOOOOOOOOOOOODDDDDOOOOOOOOOOOOOOOOOOOOO
 	fn castle_moves(&self) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let castle = self.castles[self.counter as usize];
@@ -479,6 +518,20 @@ mod test_move_generation{
 		let actual = board.moves();
 		let expected = vec![Move::from_str("d4d5").unwrap()];
 		assert_eq!(expected, actual);
+	}
+}
+
+#[cfg(test)]
+mod score_test{
+	use super::*;
+
+	#[test]
+	fn same_moves_should_yield_same_score(){
+		let mut board = Board::new();
+		assert_eq!(0, board.heurestic_value());
+
+
+		//TODO
 	}
 }
 

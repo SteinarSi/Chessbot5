@@ -13,6 +13,7 @@ pub struct Move{
 }
 
 pub type Score = i32;
+pub const INFINITY: Score = 2147483647;
 
 #[derive(Copy, Clone, PartialEq)]
 pub struct Position{

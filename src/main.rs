@@ -15,7 +15,7 @@ fn main() {
 
     
     loop{
-        //mm.search(board.clone());
+        mm.search(board.clone());
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
         input = input.trim().to_string();

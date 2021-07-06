@@ -6,7 +6,6 @@ pub struct MiniMax{
 }
 
 const DEPTH: i8 = 4;
-const INFINITY: movement::Score = 2147483647;
 
 impl AI for MiniMax{
 	fn search(&mut self, mut b: board::Board) -> board::Move{
@@ -49,8 +48,8 @@ impl MiniMax{
 		if depth == 0 { b.heurestic_value() }
 		else{
 			let ms = b.moves();
-			if ms.len() == 0 { return - INFINITY + b.counter() as i32; }
-			let mut ret = - INFINITY;
+			if ms.len() == 0 { return b.end_score(); }
+			let mut ret = - movement::INFINITY;
 			for m in ms{
 				b.move_piece(&m);
 				ret = ret.max(self.mini(b, depth-1));
@@ -64,8 +63,8 @@ impl MiniMax{
 		if depth == 0 { b.heurestic_value() }
 		else{
 			let ms = b.moves();
-			if ms.len() == 0 { return INFINITY - b.counter() as i32; }
-			let mut ret  = INFINITY;
+			if ms.len() == 0 { return b.end_score(); }
+			let mut ret  = movement::INFINITY;
 			for m in ms{
 				b.move_piece(&m);
 				ret = ret.min(self.maxi(b, depth-1));

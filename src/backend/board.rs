@@ -1,8 +1,9 @@
 pub use super::piece::{Piece, PieceType, Color, Color::White, Color::Black};
 pub use super::movement::{Move, Score};
-use super::movement::Position;
+use super::movement::{Position, INFINITY};
 use std::fmt;
 use std::io;
+use std::cmp::Ordering;
 
 const BOARD_SIZE: usize = 8;
 const DEFAULT_BOARD: &str = "\
@@ -64,9 +65,12 @@ impl Board{
 			self.move_rook_if_castling(m);
 		}
 		if pie.piecetype == PieceType::King{
-			if self.color_to_move == White { self.wkingpos.push(m.to); }
-			else { self.bkingpos.push(m.to); }
-		}else { self.wkingpos.push(self.wkingpos[self.counter]); self.bkingpos.push(self.bkingpos[self.counter]); }
+			if self.color_to_move == White { self.wkingpos.push(m.to); self.bkingpos.push(self.bkingpos[self.counter]);}
+			else { self.bkingpos.push(m.to); self.wkingpos.push(self.wkingpos[self.counter]); }
+		}else { 
+			self.wkingpos.push(self.wkingpos[self.counter]); 
+			self.bkingpos.push(self.bkingpos[self.counter]); 
+		}
 		self.scores.push(self.scores[self.counter] + m.heurestic_value());
 		self.update_castle(m);
 		self.passants.push(passant);
@@ -156,6 +160,34 @@ impl Board{
 		self.counter
 	}
 
+	pub fn is_checkmate(&mut self) -> bool{
+		self.moves().len() == 0
+	}
+
+	pub fn winner(&self) -> Option<Color>{
+		match self.end_score().cmp(&0){
+			Ordering::Less => Some(Black),
+            Ordering::Greater => Some(White),
+            Ordering::Equal => None
+		}
+	}
+
+	//NB!!!! Denne må kun kalles i botsøket, etter at moves.len() == 0.
+	pub fn end_score(&self) -> Score{
+		if self.color_to_move == White{
+			if self.is_threatened_by(&self.wkingpos[self.counter], Black){
+				- INFINITY + self.counter as Score //Sjakk matt, svart vant
+			}
+			else { 0 } //Patt
+		}
+		else{
+			if self.is_threatened_by(&self.bkingpos[self.counter], White){
+				INFINITY - self.counter as Score //Sjakk matt, hvit vant
+			}
+			else { 0 } //Patt
+		}
+	}
+
 	fn is_not_check_if(&mut self, m: &Move) -> bool{
 		let pie = self.get_clone_at(&Position{x: m.from.x, y: m.from.y});
 		let target = self.get_clone_at(&Position{x: m.to.x, y: m.to.y});
@@ -177,7 +209,11 @@ impl Board{
 		ret
 	}
 
-	pub fn is_threatened_by(&self, pos: &Position, color: Color) -> bool{
+	pub fn is_threatened(&self, pos: &Position) -> bool{
+		self.is_threatened_by(pos, self.color_to_move.opposite())
+	}
+
+	fn is_threatened_by(&self, pos: &Position, color: Color) -> bool{
 		for dir in &[(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)]{
 			let to_x = pos.x as i8 + dir.0;
 			let to_y = pos.y as i8 + dir.1;
@@ -558,7 +594,7 @@ impl fmt::Debug for TombStone{
 //           TESTS           //
 ///////////////////////////////
 
-const empty: &str = "\
+const EMPTY: &str = "\
 --------
 --------
 --------
@@ -574,7 +610,7 @@ mod test_move_generation{
 
 	#[test]
 	fn just_a_king(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[7][4] = Piece::new('K');
 		let moves = board.moves();
 		let expected: Vec<Move> = ["e1d2", "e1e2", "e1f2", "e1f1", "e1d1"].iter().map(|s| Move::from_str(s).unwrap()).collect();
@@ -584,7 +620,7 @@ mod test_move_generation{
 
 	#[test]
 	fn just_a_knight(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[0][1] = Piece::new('N');
 		let actual = board.moves();
 		let expected: Vec<Move> = ["b8c6", "b8d7", "b8a6"].iter().map(|s| Move::from_str(s).unwrap()).collect();
@@ -594,7 +630,7 @@ mod test_move_generation{
 
 	#[test]
 	fn just_a_bishop(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[1][1] = Piece::new('B');
 		let actual = board.moves();
 		let expected: Vec<Move> = ["b7a8", "b7c8", "b7c6", "b7d5", "b7e4", "b7f3", "b7g2", "b7h1", "b7a6"].iter().map(|s| Move::from_str(s).unwrap()).collect();
@@ -604,7 +640,7 @@ mod test_move_generation{
 
 	#[test]
 	fn can_capture_enemy(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[6][0] = Piece::new('p');
 		board.grid[6][1] = Piece::new('p');
 		board.grid[7][0] = Piece::new('Q');
@@ -618,7 +654,7 @@ mod test_move_generation{
 
 	#[test]
 	fn can_not_capture_own_piece(){
-		let mut board = Board::custom(empty, Black);
+		let mut board = Board::custom(EMPTY, Black);
 		board.grid[0][4] = Piece::new('n');
 		board.grid[0][3] = Piece::new('q');
 		let moves = board.moves();
@@ -630,7 +666,7 @@ mod test_move_generation{
 
 	#[test]
 	fn just_a_pawn(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[4][3] = Piece::new('P');
 		let actual = board.moves();
 		let expected = vec![Move::from_str("d4d5").unwrap()];
@@ -692,7 +728,7 @@ mod threat_test{
 
 	#[test]
 	fn cannot_go_into_check(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[0][1] = Piece::new('K');
 		board.grid[1][7] = Piece::new('r');
 
@@ -705,7 +741,7 @@ mod threat_test{
 
 	#[test]
 	fn must_escape_check(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[0][1] = Piece::new('K');
 		board.grid[0][7] = Piece::new('r');
 
@@ -719,12 +755,24 @@ mod threat_test{
 
 	#[test]
 	fn can_block_check(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[0][1] = Piece::new('K');
 		board.grid[0][7] = Piece::new('r');
 		board.grid[4][4] = Piece::new('R');
 
 		assert!(board.is_legal(Move::from_str("e4e8").unwrap()));
+	}
+
+	#[test]
+	fn fools_mate(){
+		let mut board = Board::new();
+		board.move_str("f2f3");
+		board.move_str("e7e5");
+		board.move_str("g2g4");
+		board.move_str("d8h4");
+
+		assert!(board.is_checkmate());
+		assert_eq!(board.winner(), Some(Black));
 	}
 }
 
@@ -734,7 +782,7 @@ mod pawn_tests{
 
 	#[test]
 	fn can_go_two_squares(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[6][0] = Piece::new('P');
 		let actual = board.moves();
 		let expected = vec![Move::from_str("a2a3").unwrap(), Move::from_str("a2a4").unwrap()];
@@ -744,7 +792,7 @@ mod pawn_tests{
 
 	#[test]
 	fn black_pawns_go_backwards(){
-		let mut board = Board::custom(empty, Black);
+		let mut board = Board::custom(EMPTY, Black);
 		board.grid[1][4] = Piece::new('p');
 		let actual = board.moves();
 		let expected = vec![Move::from_str("e7e6").unwrap(), Move::from_str("e7e5").unwrap()];
@@ -754,7 +802,7 @@ mod pawn_tests{
 
 	#[test]
 	fn pawns_capture_diagonally(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[6][1] = Piece::new('P');
 		board.grid[5][0] = Piece::new('p'); //Fiendtlig bonde i rekkevidde
 		board.grid[5][2] = Piece::new('P'); //Vennlig bonde i rekkevidde, kan ikke ta denne
@@ -767,7 +815,7 @@ mod pawn_tests{
 
 	#[test]
 	fn en_passant(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[6][7] = Piece::new('P');
 		board.grid[4][6] = Piece::new('p');
 
@@ -781,7 +829,7 @@ mod pawn_tests{
 
 	#[test]
 	fn en_croissant(){
-		let mut board = Board::custom(empty, Black);
+		let mut board = Board::custom(EMPTY, Black);
 		board.grid[3][4] = Piece::new('P');
 		board.grid[1][3] = Piece::new('p');
 		board.grid[6][0] = Piece::new('P');
@@ -800,7 +848,7 @@ mod pawn_tests{
 
 	#[test]
 	fn google_en_passant(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[6][0] = Piece::new('P');
 		board.grid[4][1] = Piece::new('p');
 		
@@ -812,7 +860,7 @@ mod pawn_tests{
 
 	#[test]
 	fn holy_hell(){
-		let mut board = Board::custom(empty, Black);
+		let mut board = Board::custom(EMPTY, Black);
 		board.grid[1][3] = Piece::new('p');
 		board.grid[3][4] = Piece::new('P');
 
@@ -824,7 +872,7 @@ mod pawn_tests{
 
 	#[test]
 	fn can_promote_to_queen(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[1][0] = Piece::new('P');
 		board.move_piece(&Move::from_str("a7a8Q").unwrap());
 
@@ -833,7 +881,7 @@ mod pawn_tests{
 
 	#[test]
 	fn can_promote_to_knight(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[1][0] = Piece::new('P');
 		board.move_piece(&Move::from_str("a7a8N").unwrap());
 
@@ -842,7 +890,7 @@ mod pawn_tests{
 
 	#[test]
 	fn can_undo_promotion(){
-		let mut board = Board::custom(empty, White);
+		let mut board = Board::custom(EMPTY, White);
 		board.grid[1][0] = Piece::new('P');
 
 		board.move_piece(&Move::from_str("a7a8").unwrap());

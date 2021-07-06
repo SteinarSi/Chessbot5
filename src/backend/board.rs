@@ -107,7 +107,6 @@ impl Board{
 	}
 
 	//Genererer en liste av lovlige trekk.
-	//TODO: Denne tar ennå ikke hensyn til om trekket setter kongen i sjakk.
 	pub fn moves(&mut self) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let color = self.color_to_move;
@@ -188,6 +187,7 @@ impl Board{
 		}
 	}
 
+	//Sjekker om et trekk leder til at kongen står i sjakk eller ikke.
 	fn is_not_check_if(&mut self, m: &Move) -> bool{
 		let pie = self.get_clone_at(&Position{x: m.from.x, y: m.from.y});
 		let target = self.get_clone_at(&Position{x: m.to.x, y: m.to.y});
@@ -478,18 +478,22 @@ impl Board{
 		let mut ret = Vec::new();
 		let castle = self.castles[self.counter as usize];
 		if self.color_to_move == White{
-			if castle.0 && self.get_reference_at(5, 7).is_none() && self.get_reference_at(6, 7).is_none(){
+			if castle.0 && self.get_reference_at(5, 7).is_none() && self.get_reference_at(6, 7).is_none() &&
+				[Position{x: 4, y: 7}, Position{x: 5, y: 7}, Position{x: 6, y: 7}].into_iter().all(|p| ! self.is_threatened_by(&p, Black)){
 				ret.push(Move::new(4, 7, 6, 7, None, 49));
 			}
-			if castle.1 && self.get_reference_at(1, 7).is_none() && self.get_reference_at(2, 7).is_none() && self.get_reference_at(3, 7).is_none(){
+			if castle.1 && self.get_reference_at(1, 7).is_none() && self.get_reference_at(2, 7).is_none() && self.get_reference_at(3, 7).is_none() &&
+			[Position{x: 4, y: 7}, Position{x: 3, y: 7}, Position{x: 2, y: 7}].into_iter().all(|p| ! self.is_threatened_by(&p, Black)) {
 				ret.push(Move::new(4, 7, 2, 7, None, 40));
 			}
 		}
 		else{
-			if castle.2 && self.get_reference_at(5, 0).is_none() && self.get_reference_at(6, 0).is_none(){
+			if castle.2 && self.get_reference_at(5, 0).is_none() && self.get_reference_at(6, 0).is_none() &&
+			[Position{x: 4, y: 0}, Position{x: 5, y: 0}, Position{x: 6, y: 0}].into_iter().all(|p| ! self.is_threatened_by(&p, White)) {
 				ret.push(Move::new(4, 0, 6, 0, None, -49));
 			}
-			if castle.3 && self.get_reference_at(1, 0).is_none() && self.get_reference_at(2, 0).is_none() && self.get_reference_at(3, 0).is_none(){
+			if castle.3 && self.get_reference_at(1, 0).is_none() && self.get_reference_at(2, 0).is_none() && self.get_reference_at(3, 0).is_none() &&
+			[Position{x: 4, y: 0}, Position{x: 3, y: 0}, Position{x: 2, y: 0}].into_iter().all(|p| ! self.is_threatened_by(&p, White)){
 				ret.push(Move::new(4, 0, 2, 0, None, -40));
 			}
 		}
@@ -773,6 +777,23 @@ mod threat_test{
 
 		assert!(board.is_checkmate());
 		assert_eq!(board.winner(), Some(Black));
+	}
+
+	#[test]
+	fn scholars_mate(){
+		let mut board = Board::new();
+		board.move_str("e2e4");
+		board.move_str("e7e5");
+		board.move_str("f1c4");
+		board.move_str("b8c6");
+		board.move_str("d1h5");
+		board.move_str("g8f6");
+		board.move_str("h5f7");
+
+		println!("{}", board.to_string());
+
+		assert!(board.is_checkmate());
+		assert_eq!(board.winner(), Some(White));
 	}
 }
 
@@ -1079,6 +1100,30 @@ R---K--R";
 				+ r.value_at(&Position{x: 3, y: 0}) - r.value_at(&Position{x: 0, y: 0});
 	    println!("White short: {}\nWhite long: {}\nBlack short: {}\nBlack long: {}", ws, wl, bs, bl);
 	    //panic!();
+	}
+
+	#[test]
+	fn cannot_castle_when_in_check(){
+		let mut board = Board::custom(SIMPLE, White);
+		board.grid[6][4] = Piece::new('r');
+
+		assert!( ! board.moves().contains(&Move::from_str("e1g1").unwrap()));
+	}
+
+	#[test]
+	fn cannot_castle_through_check(){
+		let mut board = Board::custom(SIMPLE, Black);
+		board.grid[1][3] = Piece::new('R');
+
+		assert!( ! board.moves().contains(&Move::from_str("e8c8").unwrap()));
+	}
+
+	#[test]
+	fn cannot_castle_into_check(){
+		let mut board = Board::custom(SIMPLE, Black);
+		board.grid[6][2] = Piece::new('r');
+
+		assert!( ! board.moves().contains(&Move::from_str("e1c1").unwrap()));
 	}
 }
 

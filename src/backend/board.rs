@@ -166,9 +166,77 @@ impl Board{
 		self.counter
 	}
 
+	pub fn is_threatened(&self, pos: &Position) -> bool{
+		for dir in &[(1, 2), (2, 1), (2, -1), (1, -2), (-1, -2), (-2, -1), (-2, 1), (-1, 2)]{
+			let to_x = pos.x as i8 + dir.0;
+			let to_y = pos.y as i8 + dir.1;
+			if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue; }
+			if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
+				if p.piecetype == PieceType::Knight{
+					if p.color != self.color_to_move{
+						return true;
+					}
+				}
+			}
+		}
+		'outer: for dir in &[(0, -1), (1, 0), (0, 1), (-1, 0)]{
+			let mut to_x = pos.x as i8;
+			let mut to_y = pos.y as i8;
+			let mut first_step = true;
+			loop{
+				to_x += dir.0;
+				to_y += dir.1;
+				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'outer; }
+				if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
+					if p.color != self.color_to_move && (p.piecetype == PieceType::Rook || p.piecetype == PieceType::Queen || (p.piecetype == PieceType::King && first_step)){
+						return true;
+					}
+					break;
+				}
+
+				first_step = false;
+			}
+		}
+		'outer: for dir in &[(1, 1), (-1, 1)]{
+			let mut to_x = pos.x as i8;
+			let mut to_y = pos.y as i8;
+			let mut first_step = true;
+			loop{
+				to_x += dir.0;
+				to_y += dir.1;
+				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'outer; }
+				if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
+					if p.color != self.color_to_move && (p.piecetype == PieceType::Bishop || p.piecetype == PieceType::Queen || p.piecetype == PieceType::King || (p.piecetype == PieceType::Pawn && p.color == White && first_step)){
+						return true;
+					}
+					break;
+				}
+				first_step = false;
+			}
+		}
+		'outer: for dir in &[(1, -1), (-1, -1)]{
+			let mut to_x = pos.x as i8;
+			let mut to_y = pos.y as i8;
+			let mut first_step = true;
+			loop{
+				to_x += dir.0;
+				to_y += dir.1;
+				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'outer; }
+				if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
+					if p.color != self.color_to_move && (p.piecetype == PieceType::Bishop || p.piecetype == PieceType::Queen || p.piecetype == PieceType::King || (p.piecetype == PieceType::Pawn && p.color == Black && first_step)){
+						return true;
+					}
+					break;
+				}
+				first_step = false;
+			}
+		}
+		false
+	}
+
 	//TODOOOOO
 	pub fn threat_count(&self, pos: &Position) -> (i32, i32){
-		//println!("\n{}", self.to_string());
+		println!("\n{}", self.to_string());
 		let mut attackers = 0;
 		let mut defenders = 0;
 		let mut to_x;
@@ -180,7 +248,7 @@ impl Board{
 			if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue; }
 			if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
 				if p.piecetype == PieceType::Knight{
-					if p.color == self.color_to_move(){
+					if p.color == self.color_to_move{
 						attackers += 1;
 					}
 					else {
@@ -189,6 +257,19 @@ impl Board{
 				}
 			}
 		}
+		//TODO
+		for dir in &[(0, -1), (1, 0), (0, 1), (-1, 0)]{
+			to_x = pos.x as i8 + dir.0;
+			to_y = pos.y as i8 + dir.1;
+			if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue; }
+			if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
+				if p.piecetype == PieceType::Rook || p.piecetype == PieceType::Queen{
+					if p.color == self.color_to_move {attackers += 1; }
+					else { defenders += 1; }
+				}
+			}//TODOOOO
+		}
+
 		//TODOOOO
 		(attackers, defenders)
 	}
@@ -588,7 +669,7 @@ mod threat_test{
 
 	const three_knights: &str ="\
 --------
--------
+--------
 ----n---
 -n---n--
 ---Q----
@@ -601,6 +682,36 @@ mod threat_test{
 		assert_eq!((3, 1), board.threat_count(&Position{x: 3, y: 4}));
 	}
 
+	#[test]
+	fn three_knights_opposite_color(){
+		let board = Board::custom(three_knights, White);
+		assert_eq!((1, 3), board.threat_count(&Position{x: 3, y: 4}));
+	}
+
+	#[test]
+	fn initial_board_threats(){
+		let mut board = Board::new();
+
+		//Tilfeldige ruter som svart truer eller passer på
+		for (x, y) in &[(1, 2), (2, 2), (4, 2), (6, 2), (7, 2), (0, 1), (1, 1), (2, 1), (2, 0), (5, 1), (7, 1)]{
+			assert!(board.is_threatened(&Position{x: *x, y: *y}));
+		}
+		//Noen ruter som svart ikke truer eller passer på
+		for (x, y) in &[(0, 0), (7, 0), (3, 3), (1, 6), (4, 6), (4, 5), (7, 6)]{
+			assert!( ! board.is_threatened(&Position{x: *x, y: *y}));
+		}
+
+		//Bytter side, ser hva hvit truer
+		board.color_to_move = board.color_to_move.opposite();
+
+		for (x, y) in &[(0, 6), (1, 6), (5, 6), (7, 6), (1, 5), (0, 5), (4, 5), (6, 5)]{
+			assert!(board.is_threatened(&Position{x: *x, y: *y}));
+		}
+
+		for (x, y) in &[(0, 7), (7, 7), (4, 4), (0, 1), (5, 1), (7, 1)]{
+			assert!( ! board.is_threatened(&Position{x: *x, y: *y}));
+		}
+	}
 }
 
 #[cfg(test)]

@@ -35,7 +35,6 @@ impl Move{
 		let rankfrom = (56 - l.next()? as i32);
 		let fileto   = (l.next()? as i32 - 97);
 		let rankto   = (56 - l.next()? as i32);
-		println!("{}:{} - {}:{}", filefrom, rankfrom, fileto, rankto);
 		if [filefrom, rankfrom, fileto, rankto].iter().any(|i| i < &0 || i >= &8) { return None; }
 		match l.next(){
 			None => Some(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, None, 0)),

@@ -8,14 +8,10 @@ use crate::ai::interface::AI;
 
 use std::io;
 
-fn main() {
+fn main2() {
     let mut board = board::Board::new();
-    //let mut mm = minimax::MiniMax::new();
-    println!("{}", board.to_string());
-
     
     loop{
-        //mm.search(board.clone());
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
         input = input.trim().to_string();
@@ -25,5 +21,18 @@ fn main() {
         else{
             println!("Nope, got an error parsing your move.");
         }
+    }
+}
+
+fn main(){
+    let mut board = board::Board::new();
+    let mut bot = minimax::MiniMax::new();
+    println!("{}", board.to_string());
+
+    loop{
+        println!("{}", board.to_string());
+        let m = bot.search(board.clone());
+        println!("{}: {}", m.to_string(), m.actual_value());
+        board.move_piece(&m);
     }
 }

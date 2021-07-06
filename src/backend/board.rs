@@ -526,7 +526,7 @@ impl Board{
 		ret
 	}
 
-	fn custom(s: &str, c: Color) -> Self{
+	pub fn custom(s: &str, c: Color) -> Self{
 		let s = s.replace(&['\n'][..], "");
 		let mut grid = [[None; BOARD_SIZE]; BOARD_SIZE];
 		let mut y = 0;
@@ -552,8 +552,6 @@ impl Board{
 			scores: vec![0], wkingpos: vec![Position{x: wk.0, y: wk.1}], bkingpos: vec![Position{x: bk.0, y: bk.1}]
 		}
 	}
-
-
 }
 
 const E1: Position = Position{x: 4, y: 7};

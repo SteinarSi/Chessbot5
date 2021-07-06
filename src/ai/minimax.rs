@@ -32,9 +32,9 @@ impl AI for MiniMax{
 			ret.sort_by(|m1, m2| m1.actual_value().cmp(&m2.actual_value()));
 		}
 
-		for m in &ret{
-			println!("{}: {}", m.to_string(), m.actual_value());
-		}
+		//for m in &ret{
+		//	println!("{}: {}", m.to_string(), m.actual_value());
+		//}
 		ret[0]
 	}
 

@@ -24,7 +24,9 @@ pub struct Board{
 	graveyard: Vec<TombStone>,
 	moves: Vec<Move>,
 	passants: Vec<Option<i8>>,
-	castles: Vec<Castle>
+	castles: Vec<Castle>,
+	wkingpos: Vec<Position>,
+	bkingpos: Vec<Position>
 
 	//TODO blir mange flere felt her etter hvert.
 }
@@ -61,6 +63,10 @@ impl Board{
 		if pie.piecetype == PieceType::King{
 			self.move_rook_if_castling(m);
 		}
+		if pie.piecetype == PieceType::King{
+			if self.color_to_move == White { self.wkingpos.push(m.to); }
+			else { self.bkingpos.push(m.to); }
+		}else { self.wkingpos.push(self.wkingpos[self.counter]); self.bkingpos.push(self.bkingpos[self.counter]); }
 		self.scores.push(self.scores[self.counter] + m.heurestic_value());
 		self.update_castle(m);
 		self.passants.push(passant);
@@ -73,6 +79,8 @@ impl Board{
 		let m = self.moves.pop().expect("Cannot go further back!");
 		self.scores.pop();
 		self.castles.pop();
+		self.wkingpos.pop();
+		self.bkingpos.pop();
 		self.counter -= 1;
 		self.color_to_move = self.color_to_move.opposite();
 		self.passants.pop();
@@ -96,22 +104,25 @@ impl Board{
 
 	//Genererer en liste av lovlige trekk.
 	//TODO: Denne tar ennå ikke hensyn til om trekket setter kongen i sjakk.
-	pub fn moves(&self) -> Vec<Move>{
+	pub fn moves(&mut self) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let color = self.color_to_move;
 
 		for y in 0..BOARD_SIZE{
 			for x in 0..BOARD_SIZE{
-				if let Some(p) = self.get_reference_at(x, y){
+				if let Some(p) = self.get_clone_at(&Position{x, y}){
 					if p.color == color{
 						if p.piecetype == PieceType::Pawn{
-							ret.append(&mut self.pawn_moves(x, y, p));
+							ret.append(&mut self.pawn_moves(x, y, &p));
+						}
+						else if p.piecetype == PieceType::King{
+							ret.append(&mut self.king_moves(x, y, &p));
 						}
 						else if p.can_run(){
-							ret.append(&mut self.running_moves(x, y, p));
+							ret.append(&mut self.running_moves(x, y, &p));
 						}
 						else{
-							ret.append(&mut self.walking_moves(x, y, p));
+							ret.append(&mut self.knight_moves(x, y, &p));
 						}
 					}
 				}
@@ -129,26 +140,34 @@ impl Board{
 		if p.piecetype == PieceType::Pawn{
 			m2 = self.pawn_moves(m.from.x, m.from.y, &p).into_iter().find(|m2| *m2==m)?;
 		}
+		else if p.piecetype == PieceType::King{
+			m2 = self.king_moves(m.from.x, m.from.y, &p).into_iter().find(|m2| *m2==m)?;
+		}
 		else if p.can_run(){
 			m2 = self.running_moves(m.from.x, m.from.y, &p).into_iter().find(|m2| *m2==m)?;
 		}
 		else{
-			m2 = self.running_moves(m.from.x, m.from.y, &p).into_iter().find(|m2| *m2==m)?;
+			m2 = self.knight_moves(m.from.x, m.from.y, &p).into_iter().find(|m2| *m2==m)?;
 		}
 		self.move_piece(&m2);
 		Some(())
 	}
 
-	pub fn is_legal(&self, m: Move) -> bool{
+	pub fn is_legal(&mut self, m: Move) -> bool{
 		if let Some(p) = self.get_clone_at(&m.from){
-			if self.color_to_move == p.color && p.piecetype == PieceType::Pawn{
-				return self.pawn_moves(m.from.x, m.from.y, &p).contains(&m)
-			}
-			else if p.can_run(){
-				return self.running_moves(m.from.x, m.from.y, &p).contains(&m)
-			}
-			else{
-				return self.walking_moves(m.from.x, m.from.y, &p).contains(&m)
+			if self.color_to_move == p.color{
+				if p.piecetype == PieceType::Pawn{
+					return self.pawn_moves(m.from.x, m.from.y, &p).contains(&m)
+				}
+				else if p.piecetype == PieceType::King{
+					return self.king_moves(m.from.x, m.from.y, &p).contains(&m)
+				}
+				else if p.can_run(){
+					return self.running_moves(m.from.x, m.from.y, &p).contains(&m)
+				}
+				else{
+					return self.knight_moves(m.from.x, m.from.y, &p).contains(&m)
+				}
 			}
 		}
 		false
@@ -307,7 +326,7 @@ impl Board{
 	}
 
 	//Kongetrekk og hestetrekk, dvs brikker som ikke kan flytte mer enn et skritt om gangen.
-	fn walking_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
+	fn knight_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
 		let mut ret = Vec::new();
 		let color = self.color_to_move;
 		for dir in p.directions(){
@@ -324,6 +343,28 @@ impl Board{
 			}
 			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
 		}
+		ret
+	}
+
+	fn king_moves(&mut self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
+		let mut ret = Vec::new();
+		let color = self.color_to_move;
+		self.grid[y][x] = None;
+		for dir in p.directions(){
+			let to_x = x as i8 + dir.0;
+			let to_y = y as i8 + dir.1;
+			let from_pos = Position{x, y};
+			let to_pos = Position{x: to_x as usize, y: to_y as usize};
+			let from_value = p.value_at(&from_pos);
+			if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 || self.is_threatened(&to_pos) { continue; }
+			if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
+				if t.color != color { 
+					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos) + p.value_at(&to_pos) - from_value));
+				} else { continue; }
+			}
+			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
+		}
+		self.grid[y][x] = Some(*p);
 		ret
 	}
 
@@ -498,8 +539,16 @@ impl Board{
 		let mut grid = [[None; BOARD_SIZE]; BOARD_SIZE];
 		let mut y = 0;
 		let mut x = 0;
+		let mut wk = (100, 100);
+		let mut bk = (100, 100);
 		for c in s.chars(){
 			grid[y][x] = Piece::new(c);
+			if let Some(p) = grid[y][x]{
+				if p.piecetype == PieceType::King {
+					if p.color == White { wk = (x, y); }
+					else { bk = (x, y); }
+				}
+	  		}
 			x += 1;
 			if x == 8{
 				y += 1;
@@ -508,7 +557,7 @@ impl Board{
 		}
 		Board{grid, color_to_move: c, counter: 0, graveyard: Vec::new(), 
 			moves: Vec::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)],
-			scores: vec![0]
+			scores: vec![0], wkingpos: vec![Position{x: wk.0, y: wk.1}], bkingpos: vec![Position{x: bk.0, y: bk.1}]
 		}
 	}
 
@@ -711,6 +760,32 @@ mod threat_test{
 		for (x, y) in &[(0, 7), (7, 7), (4, 4), (0, 1), (5, 1), (7, 1)]{
 			assert!( ! board.is_threatened(&Position{x: *x, y: *y}));
 		}
+	}
+	#[test]
+	fn cannot_go_into_check(){
+		let mut board = Board::custom(empty, White);
+		board.grid[0][1] = Piece::new('K');
+		board.grid[1][7] = Piece::new('r');
+
+		assert!( ! board.is_legal(Move::from_str("b8b7").unwrap()));
+		assert!( ! board.is_legal(Move::from_str("b8a7").unwrap()));
+		assert!( ! board.is_legal(Move::from_str("b8c7").unwrap()));
+
+		assert!(board.is_legal(Move::from_str("b8a8").unwrap()));
+	}
+
+	#[test]
+	fn must_escape_check(){
+		let mut board = Board::custom(empty, White);
+		board.grid[0][1] = Piece::new('K');
+		board.grid[0][7] = Piece::new('r');
+
+		assert!(board.is_legal(Move::from_str("b8b7").unwrap()));
+		assert!(board.is_legal(Move::from_str("b8a7").unwrap()));
+		assert!(board.is_legal(Move::from_str("b8c7").unwrap()));
+
+		assert!( ! board.is_legal(Move::from_str("b8a8").unwrap()));
+		assert!( ! board.is_legal(Move::from_str("b8c8").unwrap()));
 	}
 }
 

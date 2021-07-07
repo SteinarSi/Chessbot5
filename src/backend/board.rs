@@ -4,6 +4,7 @@ use super::zobrist::Zobrist;
 use super::movement::{Position, INFINITY};
 use std::fmt;
 use std::cmp::Ordering;
+use std::hash::{Hash, Hasher};
 
 const BOARD_SIZE: usize = 8;
 const DEFAULT_BOARD: &str = "\
@@ -27,7 +28,8 @@ pub struct Board{
 	passants: Vec<Option<i8>>,
 	castles: Vec<Castle>,
 	wkingpos: Vec<Position>,
-	bkingpos: Vec<Position>
+	bkingpos: Vec<Position>,
+	zobrist: Zobrist
 
 	//TODO blir mange flere felt her etter hvert.
 }
@@ -157,6 +159,10 @@ impl Board{
 
 	pub fn counter(&self) -> usize{
 		self.counter
+	}
+
+	pub fn hash(&self) -> i64{
+		self.zobrist.hash()
 	}
 
 	pub fn is_checkmate(&mut self) -> bool{
@@ -549,8 +555,8 @@ impl Board{
 		}
 		Board{grid, color_to_move: c, counter: 0, graveyard: Vec::new(), 
 			moves: Vec::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)],
-			scores: vec![0], wkingpos: vec![Position{x: wk.0, y: wk.1}], bkingpos: vec![Position{x: bk.0, y: bk.1}]
-		}
+			scores: vec![0], wkingpos: vec![Position{x: wk.0, y: wk.1}], bkingpos: vec![Position{x: bk.0, y: bk.1}],
+			zobrist: Zobrist::new(&grid, c)}
 	}
 }
 
@@ -576,6 +582,12 @@ impl ToString for Board{
 		}
 		ret
 	}	
+}
+
+impl Hash for Board{
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.zobrist.hash().hash(state);
+	}
 }
 
 impl fmt::Debug for Board{
@@ -1245,8 +1257,78 @@ mod zobrist_testing{
 	#[test]
 	fn zobrist_doesnt_crash(){
 		let board = Board::new();
-		let mut zob = Zobrist::new(&board.grid);
+		let mut zob = Zobrist::new(&board.grid, White);
 		println!("Current hash is: {}", zob.hash());
 		//panic!();
 	}
+	#[test]
+	fn moving_piece_changes_hash(){
+		let mut board = Board::new();
+		let hash1 = board.hash();
+		board.move_str("e2e4");
+		let hash2 = board.hash();
+
+		assert_ne!(hash1, hash2);
+	}
+
+	#[test]
+	fn different_sequence_same_result_same_hash(){
+		let mut board1 = Board::new();
+		let mut board2 = Board::new();
+
+		board1.move_str("e2e4");
+		board1.move_str("e7e5");
+		board1.move_str("d2d4");
+
+		board2.move_str("d2d4");
+		board2.move_str("e7e5");
+		board2.move_str("e2e4");
+
+		assert_eq!(board1.hash(), board2.hash());
+	}
+
+	#[test]
+	fn zobrist_handles_castling_rights(){
+		let mut board1 = Board::new();
+		let mut board2 = Board::new();
+
+		board1.move_str("e2e4");
+		board1.move_str("e7e5");
+		board1.move_str("e1e2");
+		board1.move_str("b8c6");
+		board1.move_str("e2e1");
+
+		board2.move_str("e2e4");
+		board2.move_str("e7e5");
+		board2.move_str("d1e2");
+		board2.move_str("b8c6");
+		board2.move_str("e2d1");
+
+		assert_eq!(board1.grid, board2.grid); 		//Stillingen ser lik ut, men
+		assert_ne!(board1.hash(), board2.hash()) 	//det første brettet kan ikke lenger rokere med hvit
+	}
+	#[test]
+	fn moving_back_gives_same_hash(){
+		let mut board = Board::new();
+		let hash1 = board.hash();
+		board.move_str("b1c3");
+		board.move_str("g8f6");
+
+		let hash2 = board.hash();
+
+		board.move_str("c3b1");
+		board.move_str("f6g8");
+
+		let hash3 = board.hash();
+
+		assert_ne!(hash1, hash2);
+		assert_eq!(hash1, hash3);
+	}
+
+	#[test]
+	fn zobrist_handles_en_passant(){
+		//TODOOOO	
+	}
+
+
 }

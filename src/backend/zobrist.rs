@@ -44,16 +44,20 @@ impl Zobrist{
 		Zobrist{hash, arr, color_to_move, castle, en_passant: *en_passant}
 	}
 
-	pub fn update_xy(&mut self, p: &Piece, x: usize, y: usize){
+	pub fn update_xy(&mut self, x: usize, y: usize, p: &Piece){
 		self.hash ^= self.arr[y][x][p.type_index()];
 	}
 
-	pub fn update_pos(&mut self, p: &Piece, pos: &Position){
-		self.update_xy(p, pos.x, pos.y);
+	pub fn update_pos(&mut self, pos: &Position, p: &Piece){
+		self.update_xy(pos.x, pos.y, p);
 	}
 
 	pub fn hash(&self) -> i64{
 		self.hash
+	}
+
+	pub fn set_hash(&mut self, new_hash: i64){
+		self.hash = new_hash;
 	}
 
 	pub fn swap_sides(&mut self){

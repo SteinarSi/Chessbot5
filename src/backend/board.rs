@@ -29,6 +29,7 @@ pub struct Board{
 	castles: Vec<Castle>,
 	wkingpos: Vec<Position>,
 	bkingpos: Vec<Position>,
+	hashes: Vec<i64>,
 	zobrist: Zobrist
 
 	//TODO blir mange flere felt her etter hvert.
@@ -52,10 +53,13 @@ impl Board{
 	pub fn move_piece(&mut self, m: &Move){
 		let pie = self.get_clone_at(&m.from).unwrap();
 		if let Some(target) = self.get_clone_at(&m.to){
+			self.zobrist.update_pos(&m.to, &target);
 			self.graveyard.push(TombStone{piece: target, position: m.to, date: self.counter})
 		}
 		self.grid[m.from.y][m.from.x] = None;
 		self.grid[m.to.y][m.to.x] = Some(pie);
+		self.zobrist.update_pos(&m.from, &pie);
+		self.zobrist.update_pos(&m.to, &pie);
 
 		let passant;
 		if pie.piecetype == PieceType::Pawn{
@@ -64,7 +68,7 @@ impl Board{
 			passant = None;
 		}
 		if pie.piecetype == PieceType::King{
-			self.move_rook_if_castling(m);
+			self.move_rook_if_castling(m, false);
 		}
 		if pie.piecetype == PieceType::King{
 			if self.color_to_move == White { self.wkingpos.push(m.to); self.bkingpos.push(self.bkingpos[self.counter]);}
@@ -73,6 +77,8 @@ impl Board{
 			self.wkingpos.push(self.wkingpos[self.counter]); 
 			self.bkingpos.push(self.bkingpos[self.counter]); 
 		}
+		self.zobrist.swap_sides();
+		self.hashes.push(self.zobrist.hash());
 		self.scores.push(self.scores[self.counter] + m.heurestic_value());
 		self.update_castle(m);
 		self.passants.push(passant);
@@ -83,17 +89,19 @@ impl Board{
 
 	pub fn go_back(&mut self){
 		let m = self.moves.pop().expect("Cannot go further back!");
+		self.hashes.pop();
 		self.scores.pop();
 		self.castles.pop();
 		self.wkingpos.pop();
 		self.bkingpos.pop();
 		self.counter -= 1;
+		self.zobrist.set_hash(self.hashes[self.counter]);
 		self.color_to_move = self.color_to_move.opposite();
 		self.passants.pop();
 
 		let pie = self.get_clone_at(&m.to);
 		if pie.unwrap().piecetype == PieceType::King{
-			self.move_rook_if_castling(&m);
+			self.move_rook_if_castling(&m, true);
 		}
 		self.grid[m.from.y][m.from.x] = pie;
 		self.grid[m.to.y][m.to.x] = None;
@@ -293,7 +301,15 @@ impl Board{
 		let passant;
 		if (m.from.y as i8 - m.to.y as i8).abs() == 2{
 			passant = Some(m.from.x as i8);
-		}else { passant = None; }
+			self.zobrist.update_en_passant(m.from.x);
+		}else { 
+			passant = None; 
+
+
+
+			//TODODODODODODODOOOOOOO
+
+		}
 
 		if let Some(ps) = self.passants[self.counter]{
 			if m.to.x == ps as usize {
@@ -302,18 +318,22 @@ impl Board{
 					let target = self.get_clone_at(&pos).unwrap();
 					self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
 					self.grid[3][m.to.x] = None;
+					self.zobrist.update_pos(&pos, &target);
 				}
-				if m.to.y == 5 && self.color_to_move == Black {
+				else if m.to.y == 5 && self.color_to_move == Black {
 					let pos = Position{x: m.to.x, y: 4};
 					let target = self.get_clone_at(&pos).unwrap();
 					self.graveyard.push(TombStone{piece: target, position: pos, date: self.counter});
 					self.grid[4][m.to.x] = None;
+					self.zobrist.update_pos(&pos, &target);
 				}
 			}
 		}
 
 		if m.promote.is_some(){
+			self.zobrist.update_pos(&m.to, &self.get_reference_at(m.to.x, m.to.y).unwrap());
 			self.grid[m.to.y][m.to.x] = m.promote;
+			self.zobrist.update_pos(&m.to, &m.promote.unwrap());
 		}
 
 		passant
@@ -452,13 +472,40 @@ impl Board{
 		ret
 	}
 
-	fn move_rook_if_castling(&mut self, m: &Move){
-		match (m.from.x, m.from.y, m.to.x, m.to.y) {
-			(4, 7, 6, 7) => { self.grid[7].swap(7, 5); },
-			(4, 7, 2, 7) => { self.grid[7].swap(0, 3); },
-			(4, 0, 6, 0) => { self.grid[0].swap(7, 5); },
-			(4, 0, 2, 0) => { self.grid[0].swap(0, 3); },
+	fn move_rook_if_castling(&mut self, m: &Move, back: bool){
+		if back{
+			match (m.from.x, m.from.y, m.to.x, m.to.y) {
+				(4, 7, 6, 7) => { self.grid[7].swap(7, 5); },
+				(4, 7, 2, 7) => { self.grid[7].swap(0, 3); },
+				(4, 0, 6, 0) => { self.grid[0].swap(7, 5); },
+				(4, 0, 2, 0) => { self.grid[0].swap(0, 3); }
+				_ => {}
+			}
+		}	
+		else{
+			match (m.from.x, m.from.y, m.to.x, m.to.y) {
+				(4, 7, 6, 7) => { 
+				let rw = self.get_reference_at(7, 7).unwrap();
+				self.zobrist.update_xy(7, 7, &rw);
+				self.zobrist.update_xy(5, 7, &rw);
+				self.grid[7].swap(7, 5); },
+			(4, 7, 2, 7) => { 
+				let rw = self.get_reference_at(0, 7).unwrap();
+				self.zobrist.update_xy(0, 7, &rw);
+				self.zobrist.update_xy(3, 7, &rw);
+				self.grid[7].swap(0, 3); },
+			(4, 0, 6, 0) => { 
+				let rb = self.get_reference_at(7, 0).unwrap();
+				self.zobrist.update_xy(7, 0, &rb);
+				self.zobrist.update_xy(5, 0, &rb);
+				self.grid[0].swap(7, 5); },
+			(4, 0, 2, 0) => { 
+				let rb = self.get_reference_at(0, 0).unwrap();
+				self.zobrist.update_xy(0, 0, &rb);
+				self.zobrist.update_xy(3, 0, &rb);
+				self.grid[0].swap(0, 3); },
 			_ => {}
+			}
 		}
 	}
 
@@ -475,7 +522,8 @@ impl Board{
 		let next = (c.0 && m.from != E1 && m.from != H1 && m.to != H1,
 					c.1 && m.from != E1 && m.from != A1 && m.to != A1,
 					c.2 && m.from != E8 && m.from != H8 && m.to != H8,
-					c.3 && m.from != E8 && m.from != A8 && m.to != A8);			
+					c.3 && m.from != E8 && m.from != A8 && m.to != A8);
+		self.zobrist.update_castle((c.0 != next.0, c.1 != next.1, c.2 != next.2, c.3 != next.3));
 		self.castles.push(next);
 	}
 
@@ -553,10 +601,11 @@ impl Board{
 				x = 0;
 			}
 		}
+		let zobrist = Zobrist::new(&grid, c);
 		Board{grid, color_to_move: c, counter: 0, graveyard: Vec::new(), 
 			moves: Vec::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)],
 			scores: vec![0], wkingpos: vec![Position{x: wk.0, y: wk.1}], bkingpos: vec![Position{x: bk.0, y: bk.1}],
-			zobrist: Zobrist::new(&grid, c)}
+		 	hashes: vec![zobrist.hash()], zobrist,}
 	}
 }
 
@@ -592,7 +641,7 @@ impl Hash for Board{
 
 impl fmt::Debug for Board{
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "grid:\n{}counter: {}\ngraveyard: {:?}\n, color: {}\n passants: {:?}", self.to_string(), self.counter, self.graveyard, self.color_to_move, self.passants)
+		write!(f, "grid:\n{}counter: {}\ngraveyard: {:?}\n, color: {}\n passants: {:?}\nhashcode: {}", self.to_string(), self.counter, self.graveyard, self.color_to_move, self.passants, self.zobrist.hash())
 	}
 }
 
@@ -1057,34 +1106,36 @@ R---K--R";
 	#[test]
 	fn castling_also_moves_the_rook(){
 		let mut board = Board::custom(SIMPLE, White);
-
+		println!("1\n{}", board.to_string());
 		board.move_piece(&Move::from_str("e1g1").unwrap());
 		assert_eq!(board.get_reference_at(4, 7), &None);
 		assert_eq!(board.get_reference_at(7, 7), &None);
 		assert_eq!(board.get_reference_at(6, 7), &Piece::new('K'));
 		assert_eq!(board.get_reference_at(5, 7), &Piece::new('R'));
-
+		println!("2\n{}", board.to_string());
 		board.move_piece(&Move::from_str("e8c8").unwrap());
 		assert_eq!(board.get_reference_at(0, 0), &None);
 		assert_eq!(board.get_reference_at(1, 0), &None);
 		assert_eq!(board.get_reference_at(4, 0), &None);
 		assert_eq!(board.get_reference_at(3, 0), &Piece::new('r'));
 		assert_eq!(board.get_reference_at(2, 0), &Piece::new('k'));
-
+		println!("3\n{}", board.to_string());
 		board.go_back();
+		println!("3.5");
 		board.go_back();
+		println!("4\n{}", board.to_string());
 		assert_eq!(board.get_reference_at(4, 7), &Piece::new('K'));
 		assert_eq!(board.get_reference_at(7, 7), &Piece::new('R'));
 		assert_eq!(board.get_reference_at(6, 7), &None);
 		assert_eq!(board.get_reference_at(5, 7), &None);
-
+		println!("5\n{}", board.to_string());
 		board.move_piece(&Move::from_str("e1c1").unwrap());
 		assert_eq!(board.get_reference_at(0, 7), &None);
 		assert_eq!(board.get_reference_at(1, 7), &None);
 		assert_eq!(board.get_reference_at(2, 7), &Piece::new('K'));
 		assert_eq!(board.get_reference_at(3, 7), &Piece::new('R'));
 		assert_eq!(board.get_reference_at(4, 7), &None);
-
+		println!("6\n{}", board.to_string());
 		board.move_piece(&Move::from_str("e8g8").unwrap());
 		assert_eq!(board.get_reference_at(7, 0), &None);
 		assert_eq!(board.get_reference_at(4, 0), &None);

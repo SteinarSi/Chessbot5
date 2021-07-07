@@ -27,7 +27,6 @@ fn main2() {
 fn main(){
     let mut board = board::Board::new();
     let mut bot = minimax::MiniMax::new();
-    println!("{}", board.to_string());
 
     loop{
         println!("{}", board.to_string());

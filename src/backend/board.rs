@@ -1,8 +1,8 @@
 pub use super::piece::{Piece, PieceType, Color, Color::White, Color::Black};
 pub use super::movement::{Move, Score};
+use super::zobrist::Zobrist;
 use super::movement::{Position, INFINITY};
 use std::fmt;
-use std::io;
 use std::cmp::Ordering;
 
 const BOARD_SIZE: usize = 8;
@@ -1235,5 +1235,18 @@ RNBQKBNR";
 		board.go_back();
 		board.go_back();
 		assert_eq!(board, Board::new());
+	}
+}
+
+#[cfg(test)]
+mod zobrist_testing{
+	use super::*;
+
+	#[test]
+	fn zobrist_doesnt_crash(){
+		let board = Board::new();
+		let mut zob = Zobrist::new(&board.grid);
+		println!("Current hash is: {}", zob.hash());
+		//panic!();
 	}
 }

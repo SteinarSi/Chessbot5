@@ -105,6 +105,23 @@ impl Piece{
 		self.inherent_value() + self.value_at(pos)
 	}
 
+	pub fn type_index(&self) -> usize{
+		match (self.piecetype, self.color){
+			(Pawn,   White) => 0,
+			(Pawn,   Black) => 1,
+			(Rook,   White) => 2,
+			(Rook,   Black) => 3,
+			(Knight, White) => 4,
+			(Knight, Black) => 5,
+			(Bishop, White) => 6,
+			(Bishop, Black) => 7,
+			(Queen,  White) => 8,
+			(Queen,  Black) => 9,
+			(King,   White) => 10,
+			(King,   Black) => 11
+		}
+	}
+
 }
 
 impl Color {

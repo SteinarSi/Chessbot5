@@ -61,6 +61,7 @@ impl Board{
 		self.zobrist.update_pos(&m.from, &pie);
 		self.zobrist.update_pos(&m.to, &pie);
 
+		self.zobrist.remove_en_passant();
 		let passant;
 		if pie.piecetype == PieceType::Pawn{
 			passant = self.handle_pawn_moves(m);
@@ -304,11 +305,6 @@ impl Board{
 			self.zobrist.update_en_passant(m.from.x);
 		}else { 
 			passant = None; 
-
-
-
-			//TODODODODODODODOOOOOOO
-
 		}
 
 		if let Some(ps) = self.passants[self.counter]{
@@ -1330,11 +1326,15 @@ mod zobrist_testing{
 		board1.move_str("e2e4");
 		board1.move_str("e7e5");
 		board1.move_str("d2d4");
+		board1.move_str("b8c6");
 
 		board2.move_str("d2d4");
 		board2.move_str("e7e5");
 		board2.move_str("e2e4");
+		board2.move_str("b8c6");
 
+		println!("{}{}", board1.to_string(), board2.to_string());
+		assert_eq!(board1.grid, board2.grid);
 		assert_eq!(board1.hash(), board2.hash());
 	}
 
@@ -1378,7 +1378,62 @@ mod zobrist_testing{
 
 	#[test]
 	fn zobrist_handles_en_passant(){
-		//TODOOOO	
+		let pp = "\
+rnbqkbnr
+pppppppp
+--------
+--------
+--------
+-------P
+PPPPPPP-
+RNBQKBNR";
+		let mut board1 = Board::new();
+		let mut board2 = Board::custom(pp, White);
+
+		assert_ne!(board1.hash(), board2.hash());
+
+		board1.move_str("h2h4");
+		board2.move_str("h3h4");
+
+		assert_eq!(board1.grid, board2.grid);
+		assert_ne!(board1.hash(), board2.hash());
+
+		board1.move_str("a7a6");
+		board2.move_str("a7a6");
+
+		assert_eq!(board1.hash(), board2.hash());
+	}
+
+	#[test]
+	fn different_moves_same_position(){
+		let mut french = Board::new();
+		let mut petrov = Board::new();
+
+		french.move_str("e2e4");
+		french.move_str("e7e6");
+		french.move_str("d2d4");
+		french.move_str("d7d5");		
+		french.move_str("e4d5");
+		french.move_str("e6d5");
+		french.move_str("g1f3");
+		french.move_str("g8f6");
+
+		petrov.move_str("e2e4");
+		petrov.move_str("e7e5");
+		petrov.move_str("g1f3");
+		petrov.move_str("g8f6");
+		petrov.move_str("f3e5");
+		petrov.move_str("d7d6");
+		petrov.move_str("e5f3");
+		petrov.move_str("f6e4");
+		petrov.move_str("d2d3");
+		petrov.move_str("e4f6");
+		petrov.move_str("d3d4");
+		petrov.move_str("d6d5");
+
+		assert_ne!(french, petrov);
+		assert_eq!(french.hash(), petrov.hash());
+
 	}
 
 

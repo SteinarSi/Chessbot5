@@ -12,6 +12,7 @@ pub struct Zobrist{
 	color_to_move: i64,
 	castle: (i64, i64, i64, i64),
 	en_passant: [i64; 8],
+	prev_passant: Option<usize>
 }
 
 impl Zobrist{
@@ -41,7 +42,7 @@ impl Zobrist{
 		}
 		if color == Black { hash ^= color_to_move; }
 
-		Zobrist{hash, arr, color_to_move, castle, en_passant: *en_passant}
+		Zobrist{hash, arr, color_to_move, castle, en_passant: *en_passant, prev_passant: None}
 	}
 
 	pub fn update_xy(&mut self, x: usize, y: usize, p: &Piece){
@@ -81,6 +82,17 @@ impl Zobrist{
 
 	pub fn update_en_passant(&mut self, c: usize){
 		self.hash ^= self.en_passant[c];
+		self.prev_passant = Some(c);
+	}
+
+	pub fn remove_en_passant(&mut self){
+		match self.prev_passant{
+			None => {},
+			Some(p) => { 
+				self.prev_passant = None;
+				self.hash ^= self.en_passant[p];
+			}
+		}
 	}
 }
 

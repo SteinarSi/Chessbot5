@@ -1435,6 +1435,4 @@ RNBQKBNR";
 		assert_eq!(french.hash(), petrov.hash());
 
 	}
-
-
 }

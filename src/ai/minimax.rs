@@ -5,7 +5,7 @@ pub struct MiniMax{
 	//No fields, this is a stupid AI
 }
 
-const DEPTH: i8 = 4;
+const DEPTH: i8 = 5;
 
 impl AI for MiniMax{
 	fn search(&mut self, mut b: board::Board) -> board::Move{

@@ -24,7 +24,7 @@ fn main2() {
 
 fn main(){
     //memomax_vs_alphabeta();
-    c//ompare_moves();
+    //compare_moves();
     /*
     let mut board = board::Board::new();
     let mut bot = memomax::MemoMax::new();

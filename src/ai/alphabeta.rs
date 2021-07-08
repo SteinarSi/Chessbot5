@@ -1,8 +1,6 @@
 use crate::backend::{movement, board};
 use super::interface::AI;
 
-use std::collections::HashMap;
-
 const DEPTH: usize = 5;
 
 pub struct AlphaBeta{

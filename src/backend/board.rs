@@ -120,6 +120,12 @@ impl Board{
 	//Genererer en liste av lovlige trekk.
 	pub fn moves(&mut self) -> Vec<Move>{
 		let mut ret = Vec::new();
+
+		//let hash = self.hashes[self.counter];
+		//if self.hashes.iter().fold(0, |acc, x| if x == &hash { acc+1 } else { acc }) >= 3{
+		//	return ret; //Draw by repetition
+		//}
+
 		let color = self.color_to_move;
 
 		for y in 0..BOARD_SIZE{

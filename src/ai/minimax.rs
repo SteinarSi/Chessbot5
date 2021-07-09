@@ -2,12 +2,20 @@ use crate::backend::{movement, board};
 use super::interface::AI;
 
 pub struct MiniMax{
-	//No fields, this is a stupid AI
+	depth: usize
 }
 
-const DEPTH: i8 = 5;
+const INITIAL_DEPTH: usize = 5;
 
 impl AI for MiniMax{
+	fn new() -> Self{
+		MiniMax{depth: INITIAL_DEPTH}
+	}
+
+	fn set_depth(&mut self, depth: usize){
+		self.depth = depth;
+	}
+
 	fn search(&mut self, mut b: board::Board) -> board::Move{
 		let ms = b.moves();
 		if ms.len() == 0 { panic!("Cannot pick a move when no legal moves are available"); }
@@ -16,7 +24,7 @@ impl AI for MiniMax{
 		if b.color_to_move() == board::Color::White{
 			for mut m in ms.into_iter(){
 				b.move_piece(&m);
-				m.set_actual_value(self.mini(&mut b, DEPTH-1));
+				m.set_actual_value(self.mini(&mut b, self.depth-1));
 				b.go_back();
 				ret.push(m);
 			}
@@ -25,26 +33,18 @@ impl AI for MiniMax{
 		else{
 			for mut m in ms.into_iter(){
 				b.move_piece(&m);
-				m.set_actual_value(self.maxi(&mut b, DEPTH-1));
+				m.set_actual_value(self.maxi(&mut b, self.depth-1));
 				b.go_back();
 				ret.push(m);
 			}
 			ret.sort_by(|m1, m2| m1.actual_value().cmp(&m2.actual_value()));
 		}
-
-		//for m in &ret{
-		//	println!("{}: {}", m.to_string(), m.actual_value());
-		//}
 		ret[0]
-	}
-
-	fn new() -> Self{
-		MiniMax{}
 	}
 }
 
 impl MiniMax{
-	fn maxi(&self, b: &mut board::Board, depth: i8) -> movement::Score{
+	fn maxi(&self, b: &mut board::Board, depth: usize) -> movement::Score{
 		if depth == 0 { b.heurestic_value() }
 		else{
 			let ms = b.moves();
@@ -59,7 +59,7 @@ impl MiniMax{
 		}
 	}
 
-	fn mini(&self, b: &mut board::Board, depth: i8) -> movement::Score{
+	fn mini(&self, b: &mut board::Board, depth: usize) -> movement::Score{
 		if depth == 0 { b.heurestic_value() }
 		else{
 			let ms = b.moves();

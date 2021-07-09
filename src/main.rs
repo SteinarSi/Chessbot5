@@ -25,16 +25,16 @@ fn main2() {
 fn main(){
     //memomax_vs_alphabeta();
     //compare_moves();
-    /*
+    
     let mut board = board::Board::new();
-    let mut bot = memomax::MemoMax::new();
+    let mut bot = alphabeta::AlphaBeta::new();
 
     loop{
         println!("{}", board.to_string());
         let m = bot.search(board.clone());
-        println!("{}: {}", m.to_string(), m.actual_value());
+        println!("{}", m.to_string());
         board.move_piece(&m);
-    }*/
+    }
 }
 
 fn minimax_vs_memomax(){
@@ -72,7 +72,7 @@ fn memomax_vs_alphabeta(){
 }
 
 fn compare_moves(){
-    println!("\nMiniMax: ");
+    /*println!("\nMiniMax: ");
     let mut board = board::Board::new();
     let mut mini = minimax::MiniMax::new();
     for _ in 1..=10{
@@ -80,7 +80,7 @@ fn compare_moves(){
         print!("{}: {}, ", m.to_string(), m.actual_value());
         board.move_piece(&m);
     }
-
+    */
     println!("\nMemoMax: ");
     let mut board = board::Board::new();
     let mut memo = minimax::MiniMax::new();
@@ -90,9 +90,10 @@ fn compare_moves(){
         board.move_piece(&m);
     }
 
+
     println!("\nAlphaBeta: ");
     let mut board = board::Board::new();
-    let mut alpha = minimax::MiniMax::new();
+    let mut alpha = alphabeta::AlphaBeta::new();
     for _ in 1..=10{
         let m = alpha.search(board.clone());
         print!("{}: {}, ", m.to_string(), m.actual_value());

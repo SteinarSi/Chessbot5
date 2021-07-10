@@ -81,4 +81,14 @@ mod bot_tests{
 			b.move_piece(&m1);
 		}	
 	}
+
+	#[test]
+	fn memoalpha_principal_variation(){
+		let mut b = board::Board::new();
+		let mut memoalpha = memoalpha::MemoAlpha::new();
+
+		for m in memoalpha.principal_variation(b){
+			println!("{}", m.to_string());
+		}
+	}
 }

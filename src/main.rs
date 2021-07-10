@@ -2,18 +2,23 @@ mod backend;
 mod ai;
 
 use crate::backend::{board, movement};
-use crate::ai::{interface::AI, minimax, memomax, alphabeta};
-
+use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha};
 use std::io;
 
-fn main2() {
+fn main() {
     let mut board = board::Board::new();
+    let mut memoalpha = memoalpha::MemoAlpha::new();
+    board.move_str("e2e4");
     
     loop{
         let mut input = String::new();
         io::stdin().read_line(&mut input).unwrap();
         input = input.trim().to_string();
         if board.move_str(&input).is_some(){
+            println!("{}", board.to_string());
+            println!("Thinking...");
+            let m = memoalpha.search(board.clone());
+            board.move_piece(&m);
             println!("{}", board.to_string());
         }
         else{
@@ -22,7 +27,7 @@ fn main2() {
     }
 }
 
-fn main(){
+fn main2(){
     //memomax_vs_alphabeta();
     //compare_moves();
     

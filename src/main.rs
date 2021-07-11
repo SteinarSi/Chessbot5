@@ -8,7 +8,7 @@ use std::io;
 fn main() {
     let mut board = board::Board::new();
     let mut memoalpha = memoalpha::MemoAlpha::new();
-    board.move_str("e2e4");
+    println!("{}", board.to_string());
     
     loop{
         let mut input = String::new();

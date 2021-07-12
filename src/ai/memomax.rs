@@ -61,7 +61,7 @@ impl MemoMax{
 			if m.depth >= depth { return m.value; }
 		}
 
-		let mut ms = b.moves();
+		let ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
 		let mut ret = - movement::INFINITY;
@@ -81,7 +81,7 @@ impl MemoMax{
 			if m.depth >= depth { return m.value; }
 		}
 
-		let mut ms = b.moves();
+		let ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
 		let mut ret = movement::INFINITY;

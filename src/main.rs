@@ -1,3 +1,7 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+#![allow(non_camel_case_types)]
+
 mod backend;
 mod ai;
 
@@ -118,7 +122,7 @@ fn compare_moves(){
 }
 
 fn solve_position(s: &str, c: board::Color) -> Vec<board::Move>{
-    let mut b = board::Board::custom(s, c);
+    let b = board::Board::custom(s, c);
     let mut memo = memoalpha::MemoAlpha::new();
 
     memo.principal_variation(b)

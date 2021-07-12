@@ -34,7 +34,7 @@ impl AI for MemoAlpha{
 
 	fn search(&mut self, mut b: board::Board) -> Move{
 		println!("{}", self.memo.capacity());
-		let mut ms = b.moves();
+		let ms = b.moves();
 		if ms.len() == 0 { panic!("Cannot pick a move when none are available"); }
 		if b.color_to_move() == board::White{
 			self.maximize_alpha(&mut b, - INFINITY, INFINITY, self.depth);

@@ -247,14 +247,14 @@ impl Board{
 				}
 			}
 		}
-		'outer: for dir in &[(0, -1), (1, 0), (0, 1), (-1, 0)]{
+		'hori_verti: for dir in &[(0, -1), (1, 0), (0, 1), (-1, 0)]{
 			let mut to_x = pos.x as i8;
 			let mut to_y = pos.y as i8;
 			let mut first_step = true;
 			loop{
 				to_x += dir.0;
 				to_y += dir.1;
-				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'outer; }
+				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'hori_verti; }
 				if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
 					if p.color == color && (p.piecetype == PieceType::Rook || p.piecetype == PieceType::Queen || (p.piecetype == PieceType::King && first_step)){
 						return true;
@@ -265,14 +265,14 @@ impl Board{
 				first_step = false;
 			}
 		}
-		'outer: for dir in &[(1, 1), (-1, 1)]{
+		'diagonal_down: for dir in &[(1, 1), (-1, 1)]{
 			let mut to_x = pos.x as i8;
 			let mut to_y = pos.y as i8;
 			let mut first_step = true;
 			loop{
 				to_x += dir.0;
 				to_y += dir.1;
-				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'outer; }
+				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'diagonal_down; }
 				if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
 					if p.color == color && (p.piecetype == PieceType::Bishop || p.piecetype == PieceType::Queen || p.piecetype == PieceType::King || (p.piecetype == PieceType::Pawn && p.color == White && first_step)){
 						return true;
@@ -282,14 +282,14 @@ impl Board{
 				first_step = false;
 			}
 		}
-		'outer: for dir in &[(1, -1), (-1, -1)]{
+		'diagonal_up: for dir in &[(1, -1), (-1, -1)]{
 			let mut to_x = pos.x as i8;
 			let mut to_y = pos.y as i8;
 			let mut first_step = true;
 			loop{
 				to_x += dir.0;
 				to_y += dir.1;
-				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'outer; }
+				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'diagonal_up; }
 				if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
 					if p.color == color && (p.piecetype == PieceType::Bishop || p.piecetype == PieceType::Queen || p.piecetype == PieceType::King || (p.piecetype == PieceType::Pawn && p.color == Black && first_step)){
 						return true;
@@ -422,15 +422,15 @@ impl Board{
 				let to_pos = Position{x, y: to_y as usize};
 				if to_y < 8 && to_y >= 0 && self.get_reference_at(x, to_y as usize) == &None{
 					if to_y == 0 {
-						let Q = Piece::new('Q');
-						let N = Piece::new('N');
-						ret.push(Move::new(x, y, x, to_y as usize, Q, Q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
-						ret.push(Move::new(x, y, x, to_y as usize, N, N.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
+						let qw = Piece::new('Q');
+						let nw = Piece::new('N');
+						ret.push(Move::new(x, y, x, to_y as usize, qw, qw.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
+						ret.push(Move::new(x, y, x, to_y as usize, nw, nw.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
 					} else if to_y == 7 {
-						let q = Piece::new('q');
-						let n = Piece::new('n');
-						ret.push(Move::new(x, y, x, to_y as usize, q, q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
-						ret.push(Move::new(x, y, x, to_y as usize, n, n.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
+						let qb = Piece::new('q');
+						let nb = Piece::new('n');
+						ret.push(Move::new(x, y, x, to_y as usize, qb, qb.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
+						ret.push(Move::new(x, y, x, to_y as usize, nb, nb.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
 					}
 					else { ret.push(Move::new(x, y, x, to_y as usize, None, p.value_at(&to_pos) - from_value)); }
 
@@ -448,15 +448,15 @@ impl Board{
 					if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 						if t.color != self.color_to_move { 
 							if to_y == 0 {
-								let Q = Piece::new('Q');
-								let N = Piece::new('N');
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, Q, Q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, N, N.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
+								let qw = Piece::new('Q');
+								let nw = Piece::new('N');
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, qw, qw.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, nw, nw.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
 							} else if to_y == 7{
-								let q = Piece::new('q');
-								let n = Piece::new('n');
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, q, q.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, n, n.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
+								let qb = Piece::new('q');
+								let nb = Piece::new('n');
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, qb, qb.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, nb, nb.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
 							}
 							else{
 								ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value - t.combined_value_at(&to_pos)));
@@ -535,21 +535,21 @@ impl Board{
 		let castle = self.castles[self.counter as usize];
 		if self.color_to_move == White{
 			if castle.0 && self.get_reference_at(5, 7).is_none() && self.get_reference_at(6, 7).is_none() &&
-				[Position{x: 4, y: 7}, Position{x: 5, y: 7}, Position{x: 6, y: 7}].into_iter().all(|p| ! self.is_threatened_by(&p, Black)){
+				[Position{x: 4, y: 7}, Position{x: 5, y: 7}, Position{x: 6, y: 7}].iter().all(|p| ! self.is_threatened_by(&p, Black)){
 				ret.push(Move::new(4, 7, 6, 7, None, 49));
 			}
 			if castle.1 && self.get_reference_at(1, 7).is_none() && self.get_reference_at(2, 7).is_none() && self.get_reference_at(3, 7).is_none() &&
-			[Position{x: 4, y: 7}, Position{x: 3, y: 7}, Position{x: 2, y: 7}].into_iter().all(|p| ! self.is_threatened_by(&p, Black)) {
+			[Position{x: 4, y: 7}, Position{x: 3, y: 7}, Position{x: 2, y: 7}].iter().all(|p| ! self.is_threatened_by(&p, Black)) {
 				ret.push(Move::new(4, 7, 2, 7, None, 40));
 			}
 		}
 		else{
 			if castle.2 && self.get_reference_at(5, 0).is_none() && self.get_reference_at(6, 0).is_none() &&
-			[Position{x: 4, y: 0}, Position{x: 5, y: 0}, Position{x: 6, y: 0}].into_iter().all(|p| ! self.is_threatened_by(&p, White)) {
+			[Position{x: 4, y: 0}, Position{x: 5, y: 0}, Position{x: 6, y: 0}].iter().all(|p| ! self.is_threatened_by(&p, White)) {
 				ret.push(Move::new(4, 0, 6, 0, None, -49));
 			}
 			if castle.3 && self.get_reference_at(1, 0).is_none() && self.get_reference_at(2, 0).is_none() && self.get_reference_at(3, 0).is_none() &&
-			[Position{x: 4, y: 0}, Position{x: 3, y: 0}, Position{x: 2, y: 0}].into_iter().all(|p| ! self.is_threatened_by(&p, White)){
+			[Position{x: 4, y: 0}, Position{x: 3, y: 0}, Position{x: 2, y: 0}].iter().all(|p| ! self.is_threatened_by(&p, White)){
 				ret.push(Move::new(4, 0, 2, 0, None, -40));
 			}
 		}

@@ -32,10 +32,10 @@ impl Move{
 	//For å promotere, legg til en karakter om hvilken brikke du vil promotere til på slutten, f. eks "b7a8Q".
 	pub fn from_str(s: &str) -> Option<Move>{
 		let mut l = s.chars();
-		let filefrom = (l.next()? as i32 - 97);
-		let rankfrom = (56 - l.next()? as i32);
-		let fileto   = (l.next()? as i32 - 97);
-		let rankto   = (56 - l.next()? as i32);
+		let filefrom = l.next()? as i32 - 97;
+		let rankfrom = 56 - l.next()? as i32;
+		let fileto   = l.next()? as i32 - 97;
+		let rankto   = 56 - l.next()? as i32;
 		if [filefrom, rankfrom, fileto, rankto].iter().any(|i| i < &0 || i >= &8) { return None; }
 		match l.next(){
 			None => Some(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, None, 0)),

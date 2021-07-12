@@ -4,7 +4,6 @@ use crate::board::Board;
 use crate::alphabeta::AlphaBeta;
 use crate::memomax::MemoMax;
 use crate::ai::memoalpha;
-use std::io;
 
 #[ignore]
 #[cfg(test)]

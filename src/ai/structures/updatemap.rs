@@ -2,7 +2,7 @@ use std::collections::LinkedList;
 use crate::backend::board::{Score, Move};
 
 pub struct UpdateMap{
-	arr: [Vec<Transposition>; SIZE],
+	arr: [Option<Box<Transposition>>; SIZE],
 	delete_age: bool
 }
 
@@ -23,14 +23,14 @@ pub enum TransFlag{
 	LOWER_BOUND
 }
 
-const SIZE: usize = 10000;
-const NEW_LIST: Vec<Transposition> = Vec::new();
+const SIZE: usize = 2_000_000;
+const EMPTY: Option<Box<Transposition>> = None;
 
 pub type Key = usize;
 
 impl UpdateMap{
 	pub fn new() -> Self{
-		UpdateMap{delete_age: false, arr: [NEW_LIST; SIZE]}
+		UpdateMap{delete_age: false, arr: [EMPTY; SIZE]}
 	}
 
 	pub fn transpose(&self, k: Key, value: Score, depth: usize, flag: TransFlag, best: Option<Move>) -> Transposition{
@@ -42,42 +42,26 @@ impl UpdateMap{
 	}
 
 	pub fn insert(&mut self, item: Transposition){
-		let vec = &mut self.arr[item.hash % SIZE];
-		let mut i = 0;
-		while i < vec.len(){
-			let t = &vec[i];
-			if t.hash == item.hash{
-				vec[i] = item;
-				return;
-			}
-			if t.age == self.delete_age{
-				vec.remove(i);
-			}else{
-				i += 1;
+		let k = item.hash;
+		for i in 0..=3{
+			if let Some(t) = &self.arr[(k + i) % SIZE]{
+				if t.hash == k || t.age == self.delete_age {
+					self.arr[(k + i) % SIZE] = Some(Box::new(item));
+					return;
+				}
 			}
 		}
-		vec.push(item);
+		println!("Couldn't find a spot, replacing old entry.");
+		self.arr[k % SIZE] = Some(Box::new(item));
 	}
 	
-	pub fn get(&mut self, k: Key) -> Option<&Transposition>{
-		let mut i = 0;
-		let vec = &mut self.arr[k % SIZE];
-		while i < vec.len(){
-			let t = &vec[i];
-			if t.hash == k{
-				return Some(&self.arr[k % SIZE][0]);
-			}
-			if t.age == self.delete_age{
-				vec.remove(i);
-			}else{
-				i += 1;
+	pub fn get(&mut self, k: Key) -> Option<&Box<Transposition>>{
+		for i in 0..=3{
+			if let Some(t) = &self.arr[(k + i) % SIZE]{
+				return Some(t);
 			}
 		}
 		None
-	}
-
-	fn size_at(&self, k: Key) -> usize{
-		self.arr[k % SIZE].len()
 	}
 }
 
@@ -87,23 +71,12 @@ mod map_tests{
 	use super::*;
 
 	#[test]
-	fn can_insert(){
-		let mut memo = UpdateMap::new();
-		let t = memo.transpose(13, 50, 3, TransFlag::EXACT, None);
-
-		assert_eq!(0, memo.size_at(13));
-		memo.insert(t);
-		assert_eq!(1, memo.size_at(13));
-	}
-
-	#[test]
 	fn can_extract(){
 		let mut memo = UpdateMap::new();
 		let t1 = memo.transpose(13, 50, 3, TransFlag::EXACT, None);
 		let t2 = memo.transpose(13, 50, 3, TransFlag::EXACT, None);
 
 		memo.insert(t1);
-		assert_eq!(Some(&t2), memo.get(13));
+		assert_eq!(Some(&Box::new(t2)), memo.get(13));
 	}
-
 }

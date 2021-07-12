@@ -5,10 +5,22 @@ use crate::backend::{board, movement};
 use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha};
 use std::io;
 
+fn main3(){
+    let s = "\
+k----r--
+p------p
+Q-p-----
+P--p--p-
+Pq-Pp---
+---nP---
+--KN-rPP
+-R----R-";
+    println!("{:?}", solve_position(s, board::White));
+}
+
 fn main() {
     let mut board = board::Board::new();
     let mut memoalpha = memoalpha::MemoAlpha::new();
-    println!("{}", board.to_string());
     
     loop{
         let mut input = String::new();
@@ -30,7 +42,6 @@ fn main() {
 fn main2(){
     //memomax_vs_alphabeta();
     //compare_moves();
-    
     let mut board = board::Board::new();
     let mut bot = alphabeta::AlphaBeta::new();
 
@@ -104,4 +115,12 @@ fn compare_moves(){
         print!("{}: {}, ", m.to_string(), m.actual_value());
         board.move_piece(&m);
     }
+}
+
+fn solve_position(s: &str, c: board::Color) -> Vec<board::Move>{
+    let mut b = board::Board::custom(s, c);
+    let mut memo = memoalpha::MemoAlpha::new();
+
+    memo.principal_variation(b)
+
 }

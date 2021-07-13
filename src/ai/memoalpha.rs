@@ -3,7 +3,7 @@ use super::interface::AI;
 
 use std::collections::HashMap;
 
-const INITIAL_DEPTH: usize = 7;
+const INITIAL_DEPTH: usize = 8;
 
 pub struct MemoAlpha{
 	memo: HashMap<i64, Transposition>,

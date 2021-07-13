@@ -10,6 +10,7 @@ use crate::ai::memoalpha;
 mod bot_tests{
 	use super::*;
 
+	#[ignore]
 	#[test]
 	fn alpha_and_memo_get_same_results(){
 		let mut board = board::Board::new();
@@ -29,7 +30,7 @@ mod bot_tests{
 			board.move_piece(&m1);
 		}
 	}
-
+	#[ignore]
 	#[test]
 	fn simulate_memoalpha(){
 	    let mut board = board::Board::new();
@@ -43,6 +44,7 @@ mod bot_tests{
 	    }
 	}
 
+	#[ignore]
 	#[test]
 	fn memomax_and_memoalpha_get_same_results(){
 		let mut b = board::Board::new();
@@ -60,7 +62,7 @@ mod bot_tests{
 			b.move_piece(&m1);
 		}
 	}
-
+	#[ignore]
 	#[test]
 	fn memoalpha_and_alphabeta_get_same_results(){
 		let mut b = board::Board::new();
@@ -81,6 +83,7 @@ mod bot_tests{
 		}	
 	}
 
+	#[ignore]
 	#[test]
 	fn memoalpha_principal_variation(){
 		let mut b = board::Board::new();

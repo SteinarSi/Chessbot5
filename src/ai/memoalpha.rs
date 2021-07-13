@@ -25,7 +25,7 @@ enum TransFlag{
 
 impl AI for MemoAlpha{
 	fn new() -> Self{
-		MemoAlpha{memo: HashMap::new(), depth: INITIAL_DEPTH}
+		MemoAlpha{memo: HashMap::with_capacity(7_500_00), depth: INITIAL_DEPTH}
 	}
 
 	fn set_depth(&mut self, depth: usize){
@@ -33,8 +33,8 @@ impl AI for MemoAlpha{
 	}
 
 	fn search(&mut self, mut b: board::Board) -> Move{
-		println!("{}", self.memo.capacity());
 		let ms = b.moves();
+		println!("Options: {:?}", ms);
 		if ms.len() == 0 { panic!("Cannot pick a move when none are available"); }
 		if b.color_to_move() == board::White{
 			self.maximize_alpha(&mut b, - INFINITY, INFINITY, self.depth);
@@ -42,6 +42,7 @@ impl AI for MemoAlpha{
 		else{
 			self.minimize_beta(&mut b, - INFINITY, INFINITY, self.depth);
 		}
+		println!("Move: {}\nMap size: {}\nNumber of values: {}\n", self.memo.get(&b.hash()).unwrap().best.unwrap().to_string(), self.memo.capacity(), self.memo.keys().len());
 		self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}
 }

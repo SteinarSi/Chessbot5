@@ -12,10 +12,10 @@ pub struct MemoMap{
 
 #[derive(PartialEq, Debug)]
 pub struct Transposition{
-	value: Score,
-	flag: TransFlag,
-	depth: usize,
-	best: Option<Move>,
+	pub value: Score,
+	pub flag: TransFlag,
+	pub depth: usize,
+	pub best: Option<Move>,
 	age: u8
 }
 
@@ -46,6 +46,10 @@ impl MemoMap{
 		self.map.retain(|_, v| (*v).age != delete);
 
 		before - self.map.len()
+	}
+
+	pub fn len(&self) -> usize{
+		self.map.len()
 	}
 }
 

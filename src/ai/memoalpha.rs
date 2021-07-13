@@ -1,31 +1,19 @@
 use crate::backend::{movement::*, board};
+use super::structures::memomap::*;
 use super::interface::AI;
 
 use std::collections::HashMap;
 
-const INITIAL_DEPTH: usize = 8;
+const INITIAL_DEPTH: usize = 7;
 
 pub struct MemoAlpha{
-	memo: HashMap<i64, Transposition>,
+	memo: MemoMap,
 	depth: usize
-}
-
-struct Transposition{
-	value: Score,
-	depth: usize,
-	flag: TransFlag,
-	best: Option<Move>
-}
-
-enum TransFlag{
-	EXACT,
-	UPPER_BOUND,
-	LOWER_BOUND
 }
 
 impl AI for MemoAlpha{
 	fn new() -> Self{
-		MemoAlpha{memo: HashMap::with_capacity(7_500_00), depth: INITIAL_DEPTH}
+		MemoAlpha{memo: MemoMap::new(), depth: INITIAL_DEPTH}
 	}
 
 	fn set_depth(&mut self, depth: usize){
@@ -42,7 +30,8 @@ impl AI for MemoAlpha{
 		else{
 			self.minimize_beta(&mut b, - INFINITY, INFINITY, self.depth);
 		}
-		println!("Move: {}\nMap size: {}\nNumber of values: {}\n", self.memo.get(&b.hash()).unwrap().best.unwrap().to_string(), self.memo.capacity(), self.memo.keys().len());
+		let deleted = self.memo.clean();
+		println!("Move: {}\nMap size: {}\nDeleted entries: {}", self.memo.get(&b.hash()).unwrap().best.unwrap().to_string(), self.memo.len(), deleted);
 		self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}
 }
@@ -87,7 +76,7 @@ impl MemoAlpha{
 				b.go_back();
 
 				if value >= beta{
-					self.memo.insert(b.hash(), Transposition{value, depth, best: Some(m), flag: TransFlag::LOWER_BOUND});
+					self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 					return value;
 				}
 
@@ -110,7 +99,7 @@ impl MemoAlpha{
 			b.go_back();
 
 			if value >= beta{
-				self.memo.insert(b.hash(), Transposition{value, depth, best: Some(m), flag: TransFlag::LOWER_BOUND});
+				self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 				return value;
 			}
 
@@ -120,7 +109,7 @@ impl MemoAlpha{
 				best = Some(m);
 			}
 		}
-		self.memo.insert(b.hash(), Transposition{value: alpha, depth, best, flag: if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }});
+		self.memo.insert(b.hash(), alpha, if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }, depth, best);
 		alpha
 	}
 
@@ -144,7 +133,7 @@ impl MemoAlpha{
 				b.go_back();
 
 				if value <= alpha{
-					self.memo.insert(b.hash(), Transposition{value, depth, best: Some(m), flag: TransFlag::UPPER_BOUND});
+					self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
 					return value;
 				}
 
@@ -167,7 +156,7 @@ impl MemoAlpha{
 			b.go_back();
 
 			if value <= alpha{
-				self.memo.insert(b.hash(), Transposition{value, depth, best: Some(m), flag: TransFlag::UPPER_BOUND});
+				self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
 				return value;
 			}
 
@@ -177,7 +166,7 @@ impl MemoAlpha{
 				best = Some(m);
 			}
 		}
-		self.memo.insert(b.hash(), Transposition{value: beta, depth, best, flag: if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }});
+		self.memo.insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);
 		beta
 	}
 }

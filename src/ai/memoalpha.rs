@@ -2,7 +2,7 @@ use crate::backend::{movement::*, board};
 use super::structures::memomap::*;
 use super::interface::AI;
 
-const INITIAL_DEPTH: usize = 7;
+const INITIAL_DEPTH: usize = 8;
 
 pub struct MemoAlpha{
 	memo: MemoMap,

@@ -1,7 +1,7 @@
 //Denne filen skulle gjerne hett move.rs, men move er allerede et nøkkelord i Rust og kan ikke brukes :(((
 use std::fmt;
 use std::char;
-use super::piece::Piece;
+use super::piece::{Piece, Color, Color::*};
 
 #[derive(Copy, Clone)]
 pub struct Move{
@@ -11,6 +11,9 @@ pub struct Move{
 	actual_value: Option<Score>,
 	pub promote: Option<Piece>
 }
+
+#[derive(PartialEq, Debug)]
+pub struct Moves(Vec<Move>);
 
 pub type Score = i32;
 pub const INFINITY: Score = 2147483647;
@@ -63,6 +66,35 @@ impl Move{
 	}
 }
 
+impl Moves{
+	pub fn new() -> Self{
+		Moves(Vec::new())
+	}
+
+	pub fn push(&mut self, m: Move){
+		self.0.push(m);
+	}
+
+	pub fn sort_by_heurestic(&mut self, c: Color){
+		if c == White { self.0.sort_by(|m1, m2| m2.heurestic_value().cmp(&m1.heurestic_value())); }
+		else { self.0.sort_by(|m1, m2| m1.heurestic_value().cmp(&m2.heurestic_value())); }
+	}
+
+	pub fn sort_by_actual(&mut self, c: Color){
+		if c == White { self.0.sort_by(|m1, m2| m2.actual_value().cmp(&m1.actual_value())); }
+		else { self.0.sort_by(|m1, m2| m1.actual_value().cmp(&m2.actual_value())); }
+	}
+}
+
+impl IntoIterator for Moves{
+	type Item = Move;
+	type IntoIter = std::vec::IntoIter<Self::Item>;
+
+	fn into_iter(self) -> Self::IntoIter{
+		self.0.into_iter()
+	}
+}
+
 impl PartialEq for Move{
     fn eq(&self, other: &Self) -> bool {
         self.from == other.from && self.to == other.to && self.promote == other.promote
@@ -86,5 +118,39 @@ impl ToString for Move{
 impl fmt::Debug for Move{
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "{}", self.to_string())
+	}
+}
+
+#[cfg(test)]
+mod move_tests{
+	use super::*;
+
+	#[test]
+	fn can_sort_by_heurestic(){
+		let mut moves = Moves(vec![Move::new(0, 0, 0, 0, None, 50), Move::new(0, 0, 0, 0, None, 25), Move::new(0, 0, 0, 0, None, -10), Move::new(0, 0, 0, 0, None, 100)]);
+		let expected_white = Moves(vec![Move::new(0, 0, 0, 0, None, 100), Move::new(0, 0, 0, 0, None, 50), Move::new(0, 0, 0, 0, None, 25), Move::new(0, 0, 0, 0, None, -10)]);
+		moves.sort_by_heurestic(White);
+
+		assert_eq!(moves, expected_white);
+
+		let expected_black = Moves(vec![Move::new(0, 0, 0, 0, None, -10), Move::new(0, 0, 0, 0, None, 25), Move::new(0, 0, 0, 0, None, 50), Move::new(0, 0, 0, 0, None, 100)]);
+		moves.sort_by_heurestic(Black);
+
+		assert_eq!(moves, expected_black);
+	}
+
+	#[test]
+	fn can_sort_by_actual(){
+		let mut v = vec![Move::new(0, 0, 0, 0, None, 0), Move::new(3, 0, 0, 0, None, 0), Move::new(2, 0, 0, 0, None, 0), Move::new(1, 0, 0, 0, None, 0)];
+		v[0].actual_value = Some(-50);
+		v[1].actual_value = Some(100);
+		v[2].actual_value = Some(50);
+		v[3].actual_value = Some(25);
+		let expected_white = Moves(vec![v[1], v[2], v[3], v[0]]);
+
+		let mut moves = Moves(v);
+
+		moves.sort_by_actual(White);
+		assert_eq!(moves, expected_white);
 	}
 }

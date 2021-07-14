@@ -1,6 +1,8 @@
 //Denne filen skulle gjerne hett move.rs, men move er allerede et nøkkelord i Rust og kan ikke brukes :(((
 use std::fmt;
 use std::char;
+use std::iter::FromIterator;
+use std::ops::Index;
 use super::piece::{Piece, Color, Color::*};
 
 #[derive(Copy, Clone)]
@@ -12,7 +14,7 @@ pub struct Move{
 	pub promote: Option<Piece>
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Moves(Vec<Move>);
 
 pub type Score = i32;
@@ -75,6 +77,14 @@ impl Moves{
 		self.0.push(m);
 	}
 
+	pub fn pop(&mut self) -> Option<Move>{
+		self.0.pop()
+	}
+
+	pub fn append(&mut self, other: &mut Moves){
+		self.0.append(&mut other.0);
+	}
+
 	pub fn sort_by_heurestic(&mut self, c: Color){
 		if c == White { self.0.sort_by(|m1, m2| m2.heurestic_value().cmp(&m1.heurestic_value())); }
 		else { self.0.sort_by(|m1, m2| m1.heurestic_value().cmp(&m2.heurestic_value())); }
@@ -83,6 +93,14 @@ impl Moves{
 	pub fn sort_by_actual(&mut self, c: Color){
 		if c == White { self.0.sort_by(|m1, m2| m2.actual_value().cmp(&m1.actual_value())); }
 		else { self.0.sort_by(|m1, m2| m1.actual_value().cmp(&m2.actual_value())); }
+	}
+
+	pub fn contains(&self, m: &Move) -> bool{
+		self.0.contains(m)
+	}
+
+	pub fn len(&self) -> usize{
+		self.0.len()
 	}
 }
 
@@ -93,6 +111,24 @@ impl IntoIterator for Moves{
 	fn into_iter(self) -> Self::IntoIter{
 		self.0.into_iter()
 	}
+}
+
+impl FromIterator<Move> for Moves {
+    fn from_iter<I: IntoIterator<Item=Move>>(iter: I) -> Self {
+        let mut c = Moves::new();
+        for i in iter {
+            c.push(i);
+        }
+        c
+    }
+}
+
+impl Index<usize> for Moves {
+    type Output = Move;
+
+    fn index(&self, i: usize) -> &Self::Output {
+		&self.0[i]
+    }
 }
 
 impl PartialEq for Move{

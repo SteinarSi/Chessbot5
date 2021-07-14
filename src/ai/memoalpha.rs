@@ -1,4 +1,4 @@
-use crate::backend::{movement::*, board};
+use crate::backend::{movement::*, board::*};
 use super::structures::memomap::*;
 use super::interface::AI;
 
@@ -18,11 +18,11 @@ impl AI for MemoAlpha{
 		self.depth = depth;
 	}
 
-	fn search(&mut self, mut b: board::Board) -> Move{
+	fn search(&mut self, mut b: Board) -> Move{
 		let ms = b.moves();
 		println!("Options: {:?}", ms);
 		if ms.len() == 0 { panic!("Cannot pick a move when none are available"); }
-		if b.color_to_move() == board::White{
+		if b.color_to_move() == White{
 			self.maximize_alpha(&mut b, - INFINITY, INFINITY, self.depth);
 		}
 		else{
@@ -35,8 +35,8 @@ impl AI for MemoAlpha{
 }
 
 impl MemoAlpha{
-	pub fn principal_variation(&mut self, mut b: board::Board) -> Vec<Move>{
-		let mut ret = Vec::new();
+	pub fn principal_variation(&mut self, mut b: Board) -> Moves{
+		let mut ret = Moves::new();
 		self.search(b.clone());
 		loop{
 			match self.memo.get(&b.hash()){
@@ -54,7 +54,7 @@ impl MemoAlpha{
 		}
 
 	}
-	fn maximize_alpha(&mut self, b: &mut board::Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
+	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
 		if depth <= 0 { return b.heurestic_value(); }
 
 		let mut best = None;
@@ -92,7 +92,7 @@ impl MemoAlpha{
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		ms.sort_by(|m1, m2| m2.heurestic_value().cmp(&m1.heurestic_value()));
+		ms.sort_by_heurestic(White);
 
 		for m in ms{
 			if Some(m) == prev { continue; }
@@ -115,7 +115,7 @@ impl MemoAlpha{
 		alpha
 	}
 
-	fn minimize_beta(&mut self, b: &mut board::Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
+	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
 		if depth <= 0 { return b.heurestic_value(); }
 
 		let mut exact = false;
@@ -151,7 +151,7 @@ impl MemoAlpha{
 
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
-		ms.sort_by(|m1, m2| m1.heurestic_value().cmp(&m2.heurestic_value()));
+		ms.sort_by_heurestic(Black);
 
 		for m in ms{
 			if Some(m) == prev { continue; }

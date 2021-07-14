@@ -1,5 +1,5 @@
 pub use super::piece::{Piece, PieceType, Color, Color::White, Color::Black};
-pub use super::movement::{Move, Score};
+pub use super::movement::{Move, Score, Moves};
 use super::zobrist::Zobrist;
 use super::movement::{Position, INFINITY};
 use std::fmt;
@@ -24,7 +24,7 @@ pub struct Board{
 	scores: Vec<Score>,
 	counter: usize,
 	graveyard: Vec<TombStone>,
-	moves: Vec<Move>,
+	moves: Moves,
 	passants: Vec<Option<i8>>,
 	castles: Vec<Castle>,
 	wkingpos: Vec<Position>,
@@ -125,8 +125,8 @@ impl Board{
 	}
 
 	//Genererer en liste av lovlige trekk.
-	pub fn moves(&mut self) -> Vec<Move>{
-		let mut ret = Vec::new();
+	pub fn moves(&mut self) -> Moves{
+		let mut ret = Moves::new();
 
 		//let hash = self.hashes[self.counter];
 		//if self.hashes.iter().fold(0, |acc, x| if x == &hash { acc+1 } else { acc }) >= 3{
@@ -350,8 +350,8 @@ impl Board{
 	}
 
 	//Kongetrekk og hestetrekk, dvs brikker som ikke kan flytte mer enn et skritt om gangen.
-	fn knight_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
-		let mut ret = Vec::new();
+	fn knight_moves(&self, x: usize, y: usize, p: &Piece) -> Moves{
+		let mut ret = Moves::new();
 		let color = self.color_to_move;
 		for dir in p.directions(){
 			let to_x = x as i8 + dir.0;
@@ -370,8 +370,8 @@ impl Board{
 		ret
 	}
 
-	fn king_moves(&mut self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
-		let mut ret = Vec::new();
+	fn king_moves(&mut self, x: usize, y: usize, p: &Piece) -> Moves{
+		let mut ret = Moves::new();
 		let color = self.color_to_move;
 		self.grid[y][x] = None;
 		for dir in p.directions(){
@@ -393,8 +393,8 @@ impl Board{
 	}
 
 	//Trekkene til alle brikker som kan gå flere skritt om gangen.
-	fn running_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
-		let mut ret = Vec::new();
+	fn running_moves(&self, x: usize, y: usize, p: &Piece) -> Moves{
+		let mut ret = Moves::new();
 		let color = self.color_to_move;
 		let from_pos = Position{x, y};
 		let from_value = p.value_at(&from_pos);
@@ -420,8 +420,8 @@ impl Board{
 	}
 
 	//Alle bondetrekk
-	fn pawn_moves(&self, x: usize, y: usize, p: &Piece) -> Vec<Move>{
-		let mut ret = Vec::new();
+	fn pawn_moves(&self, x: usize, y: usize, p: &Piece) -> Moves{
+		let mut ret = Moves::new();
 		let from_pos = Position{x, y};
 		let from_value = p.value_at(&from_pos);
 		for dir in p.directions(){
@@ -538,8 +538,8 @@ impl Board{
 	}
 
 
-	fn castle_moves(&self) -> Vec<Move>{
-		let mut ret = Vec::new();
+	fn castle_moves(&self) -> Moves{
+		let mut ret = Moves::new();
 		let castle = self.castles[self.counter as usize];
 		if self.color_to_move == White{
 			if castle.0 && self.get_reference_at(5, 7).is_none() && self.get_reference_at(6, 7).is_none() &&
@@ -613,7 +613,7 @@ impl Board{
 		}
 		let zobrist = Zobrist::new(&grid, c);
 		Board{grid, color_to_move: c, counter: 0, graveyard: Vec::new(), 
-			moves: Vec::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)],
+			moves: Moves::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)],
 			scores: vec![0], wkingpos: vec![Position{x: wk.0, y: wk.1}], bkingpos: vec![Position{x: bk.0, y: bk.1}],
 		 	hashes: vec![zobrist.hash()], zobrist,}
 	}
@@ -686,7 +686,7 @@ mod test_move_generation{
 		let mut board = Board::custom(EMPTY, White);
 		board.grid[7][4] = Piece::new('K');
 		let moves = board.moves();
-		let expected: Vec<Move> = ["e1d2", "e1e2", "e1f2", "e1f1", "e1d1"].iter().map(|s| Move::from_str(s).unwrap()).collect();
+		let expected: Moves = ["e1d2", "e1e2", "e1f2", "e1f1", "e1d1"].iter().map(|s| Move::from_str(s).unwrap()).collect();
 
 		assert_eq!(moves, expected);
 	}
@@ -696,7 +696,7 @@ mod test_move_generation{
 		let mut board = Board::custom(EMPTY, White);
 		board.grid[0][1] = Piece::new('N');
 		let actual = board.moves();
-		let expected: Vec<Move> = ["b8c6", "b8d7", "b8a6"].iter().map(|s| Move::from_str(s).unwrap()).collect();
+		let expected: Moves = ["b8c6", "b8d7", "b8a6"].iter().map(|s| Move::from_str(s).unwrap()).collect();
 
 		assert_eq!(expected, actual);
 	}
@@ -706,7 +706,7 @@ mod test_move_generation{
 		let mut board = Board::custom(EMPTY, White);
 		board.grid[1][1] = Piece::new('B');
 		let actual = board.moves();
-		let expected: Vec<Move> = ["b7a8", "b7c8", "b7c6", "b7d5", "b7e4", "b7f3", "b7g2", "b7h1", "b7a6"].iter().map(|s| Move::from_str(s).unwrap()).collect();
+		let expected: Moves = ["b7a8", "b7c8", "b7c6", "b7d5", "b7e4", "b7f3", "b7g2", "b7h1", "b7a6"].iter().map(|s| Move::from_str(s).unwrap()).collect();
 
 		assert_eq!(expected, actual);
 	}
@@ -742,7 +742,8 @@ mod test_move_generation{
 		let mut board = Board::custom(EMPTY, White);
 		board.grid[4][3] = Piece::new('P');
 		let actual = board.moves();
-		let expected = vec![Move::from_str("d4d5").unwrap()];
+		let mut expected = Moves::new();
+		expected.push(Move::from_str("d4d5").unwrap());
 		assert_eq!(expected, actual);
 	}
 }
@@ -875,7 +876,9 @@ mod pawn_tests{
 		let mut board = Board::custom(EMPTY, White);
 		board.grid[6][0] = Piece::new('P');
 		let actual = board.moves();
-		let expected = vec![Move::from_str("a2a3").unwrap(), Move::from_str("a2a4").unwrap()];
+		let mut expected = Moves::new();
+		expected.push(Move::from_str("a2a3").unwrap());
+		expected.push(Move::from_str("a2a4").unwrap());
 
 		assert_eq!(expected, actual);
 	}
@@ -885,7 +888,9 @@ mod pawn_tests{
 		let mut board = Board::custom(EMPTY, Black);
 		board.grid[1][4] = Piece::new('p');
 		let actual = board.moves();
-		let expected = vec![Move::from_str("e7e6").unwrap(), Move::from_str("e7e5").unwrap()];
+		let mut expected = Moves::new();
+		expected.push(Move::from_str("e7e6").unwrap());
+		expected.push(Move::from_str("e7e5").unwrap());
 
 		assert_eq!(expected, actual);
 	}
@@ -898,7 +903,7 @@ mod pawn_tests{
 		board.grid[5][2] = Piece::new('P'); //Vennlig bonde i rekkevidde, kan ikke ta denne
 
 		let actual = board.moves();
-		let expected: Vec<Move> = vec!["c3c4", "b2a3", "b2b3", "b2b4"].iter().map(|s| Move::from_str(s).unwrap()).collect();
+		let expected: Moves = vec!["c3c4", "b2a3", "b2b3", "b2b4"].iter().map(|s| Move::from_str(s).unwrap()).collect();
 
 		assert_eq!(expected, actual);
 	}
@@ -912,7 +917,7 @@ mod pawn_tests{
 		board.move_piece(&Move::from_str("h2h4").unwrap());
 
 		let actual = board.moves();
-		let expected = vec![Move::from_str("g4g3").unwrap(), Move::from_str("g4h3").unwrap()];
+		let expected: Moves = vec![Move::from_str("g4g3").unwrap(), Move::from_str("g4h3").unwrap()].into_iter().collect();
 
 		assert_eq!(expected, actual);
 	}

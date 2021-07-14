@@ -5,7 +5,7 @@
 mod backend;
 mod ai;
 
-use crate::backend::{board, movement};
+use crate::backend::{board::*, movement::*};
 use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha};
 use std::io;
 
@@ -14,7 +14,7 @@ fn main(){
 }
 
 fn play_against_memoalpha() {
-    let mut board = board::Board::new();
+    let mut board = Board::new();
     let mut memoalpha = memoalpha::MemoAlpha::new();
     println!("{}", board.to_string());
     
@@ -36,7 +36,7 @@ fn play_against_memoalpha() {
 }
 
 fn simulate_alphabeta(){
-    let mut board = board::Board::new();
+    let mut board = Board::new();
     let mut bot = alphabeta::AlphaBeta::new();
 
     loop{
@@ -48,7 +48,7 @@ fn simulate_alphabeta(){
 }
 
 fn minimax_vs_memomax(){
-    let mut board = board::Board::new();
+    let mut board = Board::new();
     let mut mini = minimax::MiniMax::new();
     let mut memo = memomax::MemoMax::new();
 
@@ -65,7 +65,7 @@ fn minimax_vs_memomax(){
 }
 
 fn memomax_vs_alphabeta(){
-    let mut board = board::Board::new();
+    let mut board = Board::new();
     let mut alphabeta = alphabeta::AlphaBeta::new();
     let mut memo = memomax::MemoMax::new();
 
@@ -92,7 +92,7 @@ fn compare_moves(){
     }
     */
     println!("\nMemoMax: ");
-    let mut board = board::Board::new();
+    let mut board = Board::new();
     let mut memo = minimax::MiniMax::new();
     for _ in 1..=10{
         let m = memo.search(board.clone());
@@ -102,7 +102,7 @@ fn compare_moves(){
 
 
     println!("\nAlphaBeta: ");
-    let mut board = board::Board::new();
+    let mut board = Board::new();
     let mut alpha = alphabeta::AlphaBeta::new();
     for _ in 1..=10{
         let m = alpha.search(board.clone());
@@ -111,7 +111,7 @@ fn compare_moves(){
     }
 
     println!("\nMemoAlpha: ");
-    let mut board = board::Board::new();
+    let mut board = Board::new();
     let mut memo = memoalpha::MemoAlpha::new();
     for _ in 1..=10{
         let m = memo.search(board.clone());
@@ -120,8 +120,8 @@ fn compare_moves(){
     }
 }
 
-fn solve_position(s: &str, c: board::Color) -> Vec<board::Move>{
-    let b = board::Board::custom(s, c);
+fn solve_position(s: &str, c: Color) -> Moves{
+    let b = Board::custom(s, c);
     let mut memo = memoalpha::MemoAlpha::new();
 
     memo.principal_variation(b)

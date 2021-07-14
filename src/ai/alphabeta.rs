@@ -1,4 +1,4 @@
-use crate::backend::{movement::*, board};
+use crate::backend::{movement::*, board::*};
 use super::interface::AI;
 
 const INITIAL_DEPTH: usize = 6;
@@ -16,13 +16,13 @@ impl AI for AlphaBeta{
 		self.depth = depth;
 	}
 
-	fn search(&mut self, mut b: board::Board) -> Move{
+	fn search(&mut self, mut b: Board) -> Move{
 		let mut ms = b.moves();
 		if ms.len() == 0 { panic!("Cannot pick a move with no moves to choose from!"); }
 
-		let mut ret = Vec::new();
-		if b.color_to_move() == board::White{
-			ms.sort_by(|m1, m2| m2.heurestic_value().cmp(&m1.heurestic_value()));
+		let mut ret = Moves::new();
+		if b.color_to_move() == White{
+			ms.sort_by_heurestic(White);
 			let mut alpha = - INFINITY;
 			for mut m in ms{
 				b.move_piece(&m);
@@ -32,11 +32,11 @@ impl AI for AlphaBeta{
 				b.go_back();
 				ret.push(m);
 			}
-			ret.sort_by(|m1, m2| m2.actual_value().cmp(&m1.actual_value()));
+			ret.sort_by_actual(White);
 			ret[0]
 		}
 		else{
-			ms.sort_by(|m1, m2| m1.heurestic_value().cmp(&m2.heurestic_value()));
+			ms.sort_by_heurestic(Black);
 			let mut beta = INFINITY;
 			for mut m in ms{
 				b.move_piece(&m);
@@ -46,19 +46,19 @@ impl AI for AlphaBeta{
 				b.go_back();
 				ret.push(m);
 			}
-			ret.sort_by(|m1, m2| m1.actual_value().cmp(&m2.actual_value()));
+			ret.sort_by_actual(Black);
 			ret[0]
 		}
 	}
 }
 
 impl AlphaBeta{
-	fn maximize_alpha(&mut self, b: &mut board::Board, mut alpha: Score, beta: Score, depth: usize) -> Score{
+	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, beta: Score, depth: usize) -> Score{
 		if depth <= 0 { return b.heurestic_value(); }
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		ms.sort_by(|m1, m2| m2.heurestic_value().cmp(&m1.heurestic_value()));
+		ms.sort_by_heurestic(White);
 
 		let mut value = - INFINITY;
 		for m in ms{
@@ -73,12 +73,12 @@ impl AlphaBeta{
 		value
 	}
 
-	fn minimize_beta(&mut self,  b: &mut board::Board, alpha: Score, mut beta: Score, depth: usize) -> Score{
+	fn minimize_beta(&mut self,  b: &mut Board, alpha: Score, mut beta: Score, depth: usize) -> Score{
 		if depth <= 0 { return b.heurestic_value(); }
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		ms.sort_by(|m1, m2| m1.heurestic_value().cmp(&m2.heurestic_value()));
+		ms.sort_by_heurestic(Black);
 
 		let mut value = INFINITY;
 		for m in ms{

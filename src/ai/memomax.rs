@@ -1,4 +1,4 @@
-use crate::backend::{movement, board};
+use crate::backend::{movement::*, board::*};
 use super::interface::AI;
 
 use std::collections::HashMap;
@@ -11,7 +11,7 @@ pub struct MemoMax{
 }
 
 struct Memory{
-	value: movement::Score,
+	value: Score,
 	depth: usize,
 }
 
@@ -24,20 +24,19 @@ impl AI for MemoMax{
 		self.depth = depth;
 	}
 
-	fn search(&mut self, mut b: board::Board) -> movement::Move{
+	fn search(&mut self, mut b: Board) -> Move{
 		let ms = b.moves();
 		if ms.len() == 0 { panic!("Cannot pick a move when no moves are available"); }
-		else if ms.len() == 1 { return ms[0]; }
 
-		let mut ret = Vec::new();
-		if b.color_to_move() == board::White{
+		let mut ret = Moves::new();
+		if b.color_to_move() == White{
 			for mut m in ms.into_iter(){
 				b.move_piece(&m);
 				m.set_actual_value(self.mini(&mut b, self.depth-1));
 				b.go_back();
 				ret.push(m);
 			}
-			ret.sort_by(|m1, m2| m2.actual_value().cmp(&m1.actual_value()));
+			ret.sort_by_actual(White);
 		}
 		else{
 			for mut m in ms.into_iter(){
@@ -46,7 +45,7 @@ impl AI for MemoMax{
 				b.go_back();
 				ret.push(m);
 			}
-			ret.sort_by(|m1, m2| m1.actual_value().cmp(&m2.actual_value()));
+			ret.sort_by_actual(Black);
 		}
 
 		return ret[0];
@@ -54,7 +53,7 @@ impl AI for MemoMax{
 }
 
 impl MemoMax{
-	fn maxi(&mut self, b: &mut board::Board, depth: usize) -> movement::Score {
+	fn maxi(&mut self, b: &mut Board, depth: usize) -> Score {
 		if depth == 0 { return b.heurestic_value(); }
 
 		if let Some(m) = self.memo.get(&b.hash()){
@@ -64,7 +63,7 @@ impl MemoMax{
 		let ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		let mut ret = - movement::INFINITY;
+		let mut ret = - INFINITY;
 		for m in ms{
 			b.move_piece(&m);
 			ret = ret.max(self.mini(b, depth-1));
@@ -74,7 +73,7 @@ impl MemoMax{
 		ret
 	}
 
-	fn mini(&mut self, b: &mut board::Board, depth: usize) -> movement::Score{
+	fn mini(&mut self, b: &mut Board, depth: usize) -> Score{
 		if depth == 0 { return b.heurestic_value(); }
 
 		if let Some(m) = self.memo.get(&b.hash()){
@@ -84,7 +83,7 @@ impl MemoMax{
 		let ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		let mut ret = movement::INFINITY;
+		let mut ret = INFINITY;
 		for m in ms{
 			b.move_piece(&m);
 			ret = ret.min(self.maxi(b, depth-1));

@@ -1,6 +1,6 @@
 use crate::backend::{board, movement};
 use crate::ai::{interface::AI, minimax, memomax, alphabeta};
-use crate::board::Board;
+use crate::backend::board::*;
 use crate::alphabeta::AlphaBeta;
 use crate::memomax::MemoMax;
 use crate::ai::memoalpha;
@@ -12,7 +12,7 @@ mod bot_tests{
 	#[ignore]
 	#[test]
 	fn alpha_and_memo_get_same_results(){
-		let mut board = board::Board::new();
+		let mut board = Board::new();
 
 		let mut alpha = alphabeta::AlphaBeta::new();
 		let mut memo  = memomax::MemoMax::new();
@@ -32,7 +32,7 @@ mod bot_tests{
 	#[ignore]
 	#[test]
 	fn simulate_memoalpha(){
-	    let mut board = board::Board::new();
+	    let mut board = Board::new();
 	    let mut bot = memoalpha::MemoAlpha::new();
 
 	    for _ in 1..=10{
@@ -46,7 +46,7 @@ mod bot_tests{
 	#[ignore]
 	#[test]
 	fn memomax_and_memoalpha_get_same_results(){
-		let mut b = board::Board::new();
+		let mut b = Board::new();
 
 		let mut max = memomax::MemoMax::new();
 		let mut alp = memoalpha::MemoAlpha::new();
@@ -64,7 +64,7 @@ mod bot_tests{
 	#[ignore]
 	#[test]
 	fn memoalpha_and_alphabeta_get_same_results(){
-		let mut b = board::Board::new();
+		let mut b = Board::new();
 
 		let mut alpha = alphabeta::AlphaBeta::new();
 		alpha.set_depth(5);
@@ -85,7 +85,7 @@ mod bot_tests{
 	#[ignore]
 	#[test]
 	fn memoalpha_principal_variation(){
-		let b = board::Board::new();
+		let b = Board::new();
 		let mut memoalpha = memoalpha::MemoAlpha::new();
 
 		for m in memoalpha.principal_variation(b){

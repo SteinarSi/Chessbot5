@@ -10,25 +10,13 @@ use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha};
 use std::io;
 
 fn main(){
-    B4E4();
+    play_against_memoalpha();
 }
 
-fn main3(){
-    let s = "\
-k----r--
-p------p
-Q-p-----
-P--p--p-
-Pq-Pp---
----nP---
---KN-rPP
--R----R-";
-    println!("{:?}", solve_position(s, board::White));
-}
-
-fn main4() {
+fn play_against_memoalpha() {
     let mut board = board::Board::new();
     let mut memoalpha = memoalpha::MemoAlpha::new();
+    println!("{}", board.to_string());
     
     loop{
         let mut input = String::new();
@@ -47,9 +35,7 @@ fn main4() {
     }
 }
 
-fn main2(){
-    //memomax_vs_alphabeta();
-    //compare_moves();
+fn simulate_alphabeta(){
     let mut board = board::Board::new();
     let mut bot = alphabeta::AlphaBeta::new();
 
@@ -132,19 +118,6 @@ fn compare_moves(){
         print!("{}: {}, ", m.to_string(), m.actual_value());
         board.move_piece(&m);
     }
-}
-
-fn B4E4(){
-    let mut b = board::Board::new();
-    let mut alpha = memoalpha::MemoAlpha::new();
-
-    for m in &["e2e4", "g1f3", "b1c3", "f1c4", "c4b3", "c3e2"]{
-        println!("{}", b.to_string());
-        b.move_str(m);
-        println!("{}", b.to_string());
-        b.move_piece(&alpha.search(b.clone()));
-    }
-    println!("{}", b.to_string());
 }
 
 fn solve_position(s: &str, c: board::Color) -> Vec<board::Move>{

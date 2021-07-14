@@ -114,6 +114,13 @@ impl Board{
 				self.grid[ts.position.y][ts.position.x] = Some(ts.piece);
 				self.graveyard.pop();
 			}
+			if d > 1{
+				let ts2 = &self.graveyard[d-2];
+				if ts2.date == self.counter{
+					self.grid[ts2.position.y][ts2.position.x] = Some(ts2.piece);
+					self.graveyard.pop();
+				}
+			}
 		}
 	}
 
@@ -334,6 +341,7 @@ impl Board{
 
 		if m.promote.is_some(){
 			self.zobrist.update_pos(&m.to, &self.get_reference_at(m.to.x, m.to.y).unwrap());
+			self.graveyard.push(TombStone{piece: self.get_clone_at(&m.to).unwrap(), position: m.from, date: self.counter});
 			self.grid[m.to.y][m.to.x] = m.promote;
 			self.zobrist.update_pos(&m.to, &m.promote.unwrap());
 		}
@@ -1010,7 +1018,7 @@ mod pawn_tests{
 
 		assert_eq!(board, copy);
 		assert_eq!(board.get_reference_at(0, 1), &Piece::new('P'));
-		assert_eq!(board.get_reference_at(1, 0), &Piece::new('R'));
+		assert_eq!(board.get_reference_at(1, 0), &Piece::new('r'));
 	}
 
 }

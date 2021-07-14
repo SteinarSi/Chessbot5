@@ -9,8 +9,8 @@ use crate::backend::{board, movement};
 use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha};
 use std::io;
 
-fn main4(){
-    compare_moves();
+fn main(){
+    B4E4();
 }
 
 fn main3(){
@@ -26,7 +26,7 @@ Pq-Pp---
     println!("{:?}", solve_position(s, board::White));
 }
 
-fn main() {
+fn main4() {
     let mut board = board::Board::new();
     let mut memoalpha = memoalpha::MemoAlpha::new();
     
@@ -124,7 +124,7 @@ fn compare_moves(){
         board.move_piece(&m);
     }
 
-    println!("\nMemoAlpha:: ");
+    println!("\nMemoAlpha: ");
     let mut board = board::Board::new();
     let mut memo = memoalpha::MemoAlpha::new();
     for _ in 1..=10{
@@ -132,6 +132,19 @@ fn compare_moves(){
         print!("{}: {}, ", m.to_string(), m.actual_value());
         board.move_piece(&m);
     }
+}
+
+fn B4E4(){
+    let mut b = board::Board::new();
+    let mut alpha = memoalpha::MemoAlpha::new();
+
+    for m in &["e2e4", "g1f3", "b1c3", "f1c4", "c4b3", "c3e2"]{
+        println!("{}", b.to_string());
+        b.move_str(m);
+        println!("{}", b.to_string());
+        b.move_piece(&alpha.search(b.clone()));
+    }
+    println!("{}", b.to_string());
 }
 
 fn solve_position(s: &str, c: board::Color) -> Vec<board::Move>{

@@ -2,8 +2,6 @@ use crate::backend::{movement::*, board};
 use super::structures::memomap::*;
 use super::interface::AI;
 
-use std::collections::HashMap;
-
 const INITIAL_DEPTH: usize = 7;
 
 pub struct MemoAlpha{

@@ -973,13 +973,44 @@ mod pawn_tests{
 	#[test]
 	fn can_undo_promotion(){
 		let mut board = Board::custom(EMPTY, White);
+		let mut copy = Board::custom(EMPTY, White);
 		board.grid[1][0] = Piece::new('P');
+		copy.grid[1][0] = Piece::new('P');
 
 		board.move_piece(&Move::from_str("a7a8").unwrap());
+
+		assert_ne!(board, copy);
+
 		board.go_back();
 
 		assert_eq!(board.get_reference_at(0, 0), &None);
 		assert_eq!(board.get_reference_at(0, 1), &Piece::new('P'));
+
+		assert_eq!(board, copy);
+	}
+
+	#[test]
+	fn can_undo_capture_promotion(){
+		let mut board = Board::custom(EMPTY, White);
+		let mut copy  = Board::custom(EMPTY, White);
+		board.grid[1][0] = Piece::new('P');
+		copy .grid[1][0] = Piece::new('P');
+		board.grid[0][1] = Piece::new('r');
+		copy .grid[0][1] = Piece::new('r');
+
+		assert_eq!(board, copy);
+
+		board.move_str("a7b8Q");
+
+		assert_ne!(board, copy);
+		assert_eq!(board.get_reference_at(0, 1), &None);
+		assert_eq!(board.get_reference_at(1, 0), &Piece::new('Q'));
+
+		board.go_back();
+
+		assert_eq!(board, copy);
+		assert_eq!(board.get_reference_at(0, 1), &Piece::new('P'));
+		assert_eq!(board.get_reference_at(1, 0), &Piece::new('R'));
 	}
 
 }

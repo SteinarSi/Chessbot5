@@ -242,19 +242,19 @@ mod piece_value_tests{
 	use super::*;
 	#[test]
 	fn zero_sum_piece_values(){
-		let K = Piece::new('K').unwrap();
-		let k = Piece::new('k').unwrap();
+		let kw = Piece::new('K').unwrap();
+		let kb = Piece::new('k').unwrap();
 
-		assert_eq!(0, K.combined_value_at(&Position{x: 4, y: 7}) + k.combined_value_at(&Position{x: 4, y: 0}));
+		assert_eq!(0, kw.combined_value_at(&Position{x: 4, y: 7}) + kb.combined_value_at(&Position{x: 4, y: 0}));
 
-		let Q = Piece::new('Q').unwrap();
-		let q = Piece::new('q').unwrap();
+		let qw = Piece::new('Q').unwrap();
+		let qb = Piece::new('q').unwrap();
 
-		assert_eq!(0, Q.combined_value_at(&Position{x: 6, y: 3}) + q.combined_value_at(&Position{x: 6, y: 4}));
+		assert_eq!(0, qw.combined_value_at(&Position{x: 6, y: 3}) + qb.combined_value_at(&Position{x: 6, y: 4}));
 
-		let P = Piece::new('P').unwrap();
-		let p = Piece::new('p').unwrap();
+		let pw = Piece::new('P').unwrap();
+		let pb = Piece::new('p').unwrap();
 
-		assert_eq!(0, P.combined_value_at(&Position{x: 2, y: 1}) + p.combined_value_at(&Position{x: 2, y: 6}));
+		assert_eq!(0, pw.combined_value_at(&Position{x: 2, y: 1}) + pb.combined_value_at(&Position{x: 2, y: 6}));
 	}
 }

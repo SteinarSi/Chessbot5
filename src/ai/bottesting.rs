@@ -5,7 +5,6 @@ use crate::alphabeta::AlphaBeta;
 use crate::memomax::MemoMax;
 use crate::ai::memoalpha;
 
-#[ignore]
 #[cfg(test)]
 mod bot_tests{
 	use super::*;
@@ -52,7 +51,7 @@ mod bot_tests{
 		let mut max = memomax::MemoMax::new();
 		let mut alp = memoalpha::MemoAlpha::new();
 
-		for i in 1..=10{
+		for _ in 1..=10{
 			let m1 = alp.search(b.clone());
 			let m2 = max.search(b.clone());
 
@@ -72,7 +71,7 @@ mod bot_tests{
 		let mut memo = memoalpha::MemoAlpha::new();
 		memo.set_depth(5);
 
-		for i in 1..=10{
+		for _ in 1..=10{
 			let m1 = alpha.search(b.clone());
 			let m2 = memo.search(b.clone());
 
@@ -86,7 +85,7 @@ mod bot_tests{
 	#[ignore]
 	#[test]
 	fn memoalpha_principal_variation(){
-		let mut b = board::Board::new();
+		let b = board::Board::new();
 		let mut memoalpha = memoalpha::MemoAlpha::new();
 
 		for m in memoalpha.principal_variation(b){

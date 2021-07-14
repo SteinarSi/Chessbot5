@@ -487,26 +487,26 @@ impl Board{
 		else{
 			match (m.from.x, m.from.y, m.to.x, m.to.y) {
 				(4, 7, 6, 7) => { 
-				let rw = self.get_reference_at(7, 7).unwrap();
-				self.zobrist.update_xy(7, 7, &rw);
-				self.zobrist.update_xy(5, 7, &rw);
-				self.grid[7].swap(7, 5); },
-			(4, 7, 2, 7) => { 
-				let rw = self.get_reference_at(0, 7).unwrap();
-				self.zobrist.update_xy(0, 7, &rw);
-				self.zobrist.update_xy(3, 7, &rw);
-				self.grid[7].swap(0, 3); },
-			(4, 0, 6, 0) => { 
-				let rb = self.get_reference_at(7, 0).unwrap();
-				self.zobrist.update_xy(7, 0, &rb);
-				self.zobrist.update_xy(5, 0, &rb);
-				self.grid[0].swap(7, 5); },
-			(4, 0, 2, 0) => { 
-				let rb = self.get_reference_at(0, 0).unwrap();
-				self.zobrist.update_xy(0, 0, &rb);
-				self.zobrist.update_xy(3, 0, &rb);
-				self.grid[0].swap(0, 3); },
-			_ => {}
+					let rw = self.get_reference_at(7, 7).unwrap();
+					self.zobrist.update_xy(7, 7, &rw);
+					self.zobrist.update_xy(5, 7, &rw);
+					self.grid[7].swap(7, 5); },
+				(4, 7, 2, 7) => { 
+					let rw = self.get_reference_at(0, 7).unwrap();
+					self.zobrist.update_xy(0, 7, &rw);
+					self.zobrist.update_xy(3, 7, &rw);
+					self.grid[7].swap(0, 3); },
+				(4, 0, 6, 0) => { 
+					let rb = self.get_reference_at(7, 0).unwrap();
+					self.zobrist.update_xy(7, 0, &rb);
+					self.zobrist.update_xy(5, 0, &rb);
+					self.grid[0].swap(7, 5); },
+				(4, 0, 2, 0) => { 
+					let rb = self.get_reference_at(0, 0).unwrap();
+					self.zobrist.update_xy(0, 0, &rb);
+					self.zobrist.update_xy(3, 0, &rb);
+					self.grid[0].swap(0, 3); },
+				_ => {}
 			}
 		}
 	}
@@ -771,7 +771,7 @@ mod threat_test{
 
 	#[test]
 	fn initial_board_threats(){
-		let mut board = Board::new();
+		let board = Board::new();
 
 		//Tilfeldige ruter som svart truer eller passer på
 		for (x, y) in &[(1, 2), (2, 2), (4, 2), (6, 2), (7, 2), (0, 1), (1, 1), (2, 1), (2, 0), (5, 1), (7, 1)]{
@@ -1149,18 +1149,18 @@ R---K--R";
 	//siden vi ikke har lov til å finne dem i en const.
 	#[test]
 	fn find_castle_values(){
-	    let K = Piece::new('K').unwrap();
-	    let R = Piece::new('R').unwrap();
-	    let k = Piece::new('k').unwrap();
-	    let r = Piece::new('r').unwrap();
-	    let ws = K.value_at(&Position{x: 6, y: 7}) - K.value_at(&Position{x: 4, y: 7}) 
-	            + R.value_at(&Position{x: 5, y: 7}) - R.value_at(&Position{x: 7, y: 7});
-	    let wl = K.value_at(&Position{x: 2, y: 7}) - K.value_at(&Position{x: 4, y: 7})
-	            + R.value_at(&Position{x: 3, y: 7}) - R.value_at(&Position{x: 0, y: 7});
-        let bs = k.value_at(&Position{x: 6, y: 0}) - k.value_at(&Position{x: 4, y: 0})
-        		+ r.value_at(&Position{x: 5, y: 0}) - r.value_at(&Position{x: 7, y: 0});
-		let bl = k.value_at(&Position{x: 2, y: 0}) - k.value_at(&Position{x: 4, y: 0})
-				+ r.value_at(&Position{x: 3, y: 0}) - r.value_at(&Position{x: 0, y: 0});
+	    let kw = Piece::new('K').unwrap();
+	    let rw = Piece::new('R').unwrap();
+	    let kb = Piece::new('k').unwrap();
+	    let rb = Piece::new('r').unwrap();
+	    let ws = kw.value_at(&Position{x: 6, y: 7}) - kw.value_at(&Position{x: 4, y: 7}) 
+               + rw.value_at(&Position{x: 5, y: 7}) - rw.value_at(&Position{x: 7, y: 7});
+	    let wl = kw.value_at(&Position{x: 2, y: 7}) - kw.value_at(&Position{x: 4, y: 7})
+               + rw.value_at(&Position{x: 3, y: 7}) - rw.value_at(&Position{x: 0, y: 7});
+        let bs = kb.value_at(&Position{x: 6, y: 0}) - kb.value_at(&Position{x: 4, y: 0})
+    		   + rb.value_at(&Position{x: 5, y: 0}) - rb.value_at(&Position{x: 7, y: 0});
+		let bl = kb.value_at(&Position{x: 2, y: 0}) - kb.value_at(&Position{x: 4, y: 0})
+			   + rb.value_at(&Position{x: 3, y: 0}) - rb.value_at(&Position{x: 0, y: 0});
 	    println!("White short: {}\nWhite long: {}\nBlack short: {}\nBlack long: {}", ws, wl, bs, bl);
 	    //panic!();
 	}
@@ -1194,7 +1194,7 @@ R---K--R";
 mod test_movement{
 	use super::*;
 
-	const e4: &str = "\
+	const E4: &str = "\
 rnbqkbnr
 pppppppp
 --------
@@ -1203,7 +1203,7 @@ pppppppp
 --------
 PPPP-PPP
 RNBQKBNR";
-	const e4c5: &str = "\
+	const E4C5: &str = "\
 rnbqkbnr
 pp-ppppp
 --------
@@ -1212,7 +1212,7 @@ pp-ppppp
 --------
 PPPP-PPP
 RNBQKBNR";
-	const e4c6: &str = "\
+	const E4C6: &str = "\
 rnbqkbnr
 pp-ppppp
 --p-----
@@ -1225,7 +1225,7 @@ RNBQKBNR";
 	#[test]
 	fn just_e4(){
 		let mut board = Board::new();
-		let expected = Board::custom(e4, Black);
+		let expected = Board::custom(E4, Black);
 		board.move_piece(&Move::from_str("e2e4").unwrap());
 
 		assert_eq!(board.grid, expected.grid);
@@ -1244,13 +1244,13 @@ RNBQKBNR";
 		let mut board = Board::new();
 
 		board.move_piece(&Move::from_str("e2e4").unwrap());
-		assert_eq!(board.grid, Board::custom(e4, Black).grid);
+		assert_eq!(board.grid, Board::custom(E4, Black).grid);
 
 		board.move_piece(&Move::from_str("c7c5").unwrap());
-		assert_eq!(board.grid, Board::custom(e4c5, White).grid);
+		assert_eq!(board.grid, Board::custom(E4C5, White).grid);
 
 		board.go_back();
-		assert_eq!(board.grid, Board::custom(e4, Black).grid);
+		assert_eq!(board.grid, Board::custom(E4, Black).grid);
 
 		board.go_back();
 		assert_eq!(board, Board::new());
@@ -1288,14 +1288,14 @@ RNBQKBNR";
 		let mut board = Board::new();
 
 		board.move_piece(&Move::from_str("e2e4").unwrap());
-		assert_eq!(board.grid, Board::custom(e4, Black).grid);
+		assert_eq!(board.grid, Board::custom(E4, Black).grid);
 
 		board.move_piece(&Move::from_str("c7c5").unwrap());
-		assert_eq!(board.grid, Board::custom(e4c5, White).grid);
+		assert_eq!(board.grid, Board::custom(E4C5, White).grid);
 
 		board.go_back();
 		board.move_piece(&Move::from_str("c7c6").unwrap());
-		assert_eq!(board.grid, Board::custom(e4c6, White).grid);
+		assert_eq!(board.grid, Board::custom(E4C6, White).grid);
 
 		board.go_back();
 		board.go_back();
@@ -1310,7 +1310,7 @@ mod zobrist_testing{
 	#[test]
 	fn zobrist_doesnt_crash(){
 		let board = Board::new();
-		let mut zob = Zobrist::new(&board.grid, White);
+		let zob = Zobrist::new(&board.grid, White);
 		println!("Current hash is: {}", zob.hash());
 		//panic!();
 	}

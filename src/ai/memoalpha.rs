@@ -54,21 +54,24 @@ impl MemoAlpha{
 		}
 
 	}
-	fn maximize_alpha(&mut self, b: &mut board::Board, mut alpha: Score, beta: Score, depth: usize) -> Score{
+	fn maximize_alpha(&mut self, b: &mut board::Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
 		if depth <= 0 { return b.heurestic_value(); }
 
 		let mut best = None;
 		let mut exact = false;
+		let mut prev = None;
 
 		if let Some(t) = self.memo.get(&b.hash()){
 			if t.depth >= depth{
 				match &t.flag{
 					TransFlag::EXACT       => { return t.value; }
-					TransFlag::LOWER_BOUND => { if t.value >= beta  { return t.value; } }
-					TransFlag::UPPER_BOUND => { if t.value <= alpha { return t.value; } }
+					TransFlag::LOWER_BOUND => { alpha = alpha.max(t.value); }
+					TransFlag::UPPER_BOUND => { beta  = beta .min(t.value); }
 				}
+				if alpha >= beta { return t.value; }
 			}
 			else if let Some(m) = t.best{
+				prev = t.best;
 				b.move_piece(&m); //TODO: en sjekk for om trekket er lovlig eller ei
 				let value = self.minimize_beta(b, alpha, beta, depth-1);
 				b.go_back();
@@ -81,6 +84,7 @@ impl MemoAlpha{
 				if value > alpha{
 					best = Some(m);
 					exact = true;
+					alpha = value;
 				}
 			}
 		}
@@ -91,7 +95,7 @@ impl MemoAlpha{
 		ms.sort_by(|m1, m2| m2.heurestic_value().cmp(&m1.heurestic_value()));
 
 		for m in ms{
-			if Some(m) == best { continue; }
+			if Some(m) == prev { continue; }
 			b.move_piece(&m);
 			let value = self.minimize_beta(b, alpha, beta, depth-1);
 			b.go_back();
@@ -111,21 +115,23 @@ impl MemoAlpha{
 		alpha
 	}
 
-	fn minimize_beta(&mut self, b: &mut board::Board, alpha: Score, mut beta: Score, depth: usize) -> Score{
+	fn minimize_beta(&mut self, b: &mut board::Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
 		if depth <= 0 { return b.heurestic_value(); }
 
 		let mut exact = false;
 		let mut best = None;
+		let mut prev = None;
 
 		if let Some(t) = self.memo.get(&b.hash()){
 			if t.depth >= depth{
 				match &t.flag{
 					TransFlag::EXACT       => { return t.value; }
-					TransFlag::LOWER_BOUND => { if t.value >= beta  { return t.value; } }
-					TransFlag::UPPER_BOUND => { if t.value <= alpha { return t.value; } }
+					TransFlag::LOWER_BOUND => { alpha = alpha.max(t.value); }
+					TransFlag::UPPER_BOUND => { beta  = beta .min(t.value); }
 				}
 			}
 			else if let Some(m) = t.best{
+				prev = t.best;
 				b.move_piece(&m);
 				let value = self.maximize_alpha(b, alpha, beta, depth-1);
 				b.go_back();
@@ -148,7 +154,7 @@ impl MemoAlpha{
 		ms.sort_by(|m1, m2| m1.heurestic_value().cmp(&m2.heurestic_value()));
 
 		for m in ms{
-			if Some(m) == best { continue; }
+			if Some(m) == prev { continue; }
 			b.move_piece(&m);
 			let value = self.maximize_alpha(b, alpha, beta, depth-1);
 			b.go_back();

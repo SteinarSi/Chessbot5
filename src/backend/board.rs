@@ -167,8 +167,26 @@ impl Board{
 		Some(())
 	}
 
-	pub fn is_legal(&mut self, m: Move) -> bool{
-		self.moves().contains(&m)
+	pub fn is_legal(&mut self, m: &Move) -> bool{
+		self.legal_helper(m) && self.is_not_check_if(m)
+	}
+
+	fn legal_helper(&self, m: &Move) -> bool{
+		let delta = (m.to.x as i8 - m.from.x as i8, m.to.y as i8 - m.from.y as i8);
+		if let Some(p) = self.get_reference_at(m.from.x, m.from.y){
+			if p.color != self.color_to_move { return false; }
+			let len = delta.0.abs().max(delta.1.abs());
+			let vector = (delta.0 / len, delta.1 / len);
+			match p.piecetype{
+				PieceType::Pawn   => { return self.pawn_moves(m.from.x, m.from.y, p).contains(m); }
+				PieceType::Rook   => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0)].contains(&vector); }
+				PieceType::Bishop => { return [(1,  1), (-1, 1), (1, -1), (-1, -1)].contains(&vector); }
+				PieceType::Queen  => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0), (1, 1), (-1, 1), (1, -1), (-1, -1)].contains(&vector); }
+				PieceType::King   => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0), (1, 1), (-1, 1), (1, -1), (-1, -1)].contains(&vector); }
+				PieceType::Knight => { return delta.0.abs() + delta.1.abs() == 3; }
+			}
+		}
+		false
 	}
 
 	pub fn heuristic_value(&self) -> Score{
@@ -806,11 +824,11 @@ mod threat_test{
 		board.grid[0][1] = Piece::new('K');
 		board.grid[1][7] = Piece::new('r');
 
-		assert!( ! board.is_legal(Move::from_str("b8b7").unwrap()));
-		assert!( ! board.is_legal(Move::from_str("b8a7").unwrap()));
-		assert!( ! board.is_legal(Move::from_str("b8c7").unwrap()));
+		assert!( ! board.is_legal(&Move::from_str("b8b7").unwrap()));
+		assert!( ! board.is_legal(&Move::from_str("b8a7").unwrap()));
+		assert!( ! board.is_legal(&Move::from_str("b8c7").unwrap()));
 
-		assert!(board.is_legal(Move::from_str("b8a8").unwrap()));
+		assert!(board.is_legal(&Move::from_str("b8a8").unwrap()));
 	}
 
 	#[test]
@@ -819,12 +837,12 @@ mod threat_test{
 		board.grid[0][1] = Piece::new('K');
 		board.grid[0][7] = Piece::new('r');
 
-		assert!(board.is_legal(Move::from_str("b8b7").unwrap()));
-		assert!(board.is_legal(Move::from_str("b8a7").unwrap()));
-		assert!(board.is_legal(Move::from_str("b8c7").unwrap()));
+		assert!(board.is_legal(&Move::from_str("b8b7").unwrap()));
+		assert!(board.is_legal(&Move::from_str("b8a7").unwrap()));
+		assert!(board.is_legal(&Move::from_str("b8c7").unwrap()));
 
-		assert!( ! board.is_legal(Move::from_str("b8a8").unwrap()));
-		assert!( ! board.is_legal(Move::from_str("b8c8").unwrap()));
+		assert!( ! board.is_legal(&Move::from_str("b8a8").unwrap()));
+		assert!( ! board.is_legal(&Move::from_str("b8c8").unwrap()));
 	}
 
 	#[test]
@@ -834,7 +852,7 @@ mod threat_test{
 		board.grid[0][7] = Piece::new('r');
 		board.grid[4][4] = Piece::new('R');
 
-		assert!(board.is_legal(Move::from_str("e4e8").unwrap()));
+		assert!(board.is_legal(&Move::from_str("e4e8").unwrap()));
 	}
 
 	#[test]

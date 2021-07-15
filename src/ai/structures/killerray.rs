@@ -12,8 +12,8 @@ impl Killerray{
 		Killerray{arr: [None; SIZE]}
 	}
 
-	pub fn get(&self, i: usize) -> &Option<Move>{
-		&self.arr[i % SIZE]
+	pub fn get(&self, i: usize) -> Option<Move>{
+		self.arr[i % SIZE]
 	}
 
 	pub fn put(&mut self, m: Move, i: usize){
@@ -29,12 +29,12 @@ mod killer_testing{
 	fn can_put_and_get(){
 		let mut kill = Killerray::new();
 
-		assert_eq!(&None, kill.get(5));
+		assert_eq!(None, kill.get(5));
 
 		let m = Move::new(0, 0, 0, 0, None, 0);
 		kill.put(m.clone(), 5);
 
-		assert_eq!(&Some(m), kill.get(5));
+		assert_eq!(Some(m), kill.get(5));
 	}
 
 	#[test]
@@ -45,6 +45,6 @@ mod killer_testing{
 
 		kill.put(m.clone(), 99999999);
 
-		assert_eq!(&Some(m), kill.get(99999999));
+		assert_eq!(Some(m), kill.get(99999999));
 	}
 }

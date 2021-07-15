@@ -52,7 +52,7 @@ impl MemoAlpha{
 
 	}
 	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
-		if depth <= 0 { return b.heurestic_value(); }
+		if depth <= 0 { return b.heuristic_value(); }
 
 		let mut best = None;
 		let mut exact = false;
@@ -89,7 +89,7 @@ impl MemoAlpha{
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		ms.sort_by_heurestic(White);
+		ms.sort_by_heuristic(White);
 
 		for m in ms{
 			if Some(m) == prev { continue; }
@@ -113,7 +113,7 @@ impl MemoAlpha{
 	}
 
 	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
-		if depth <= 0 { return b.heurestic_value(); }
+		if depth <= 0 { return b.heuristic_value(); }
 
 		let mut exact = false;
 		let mut best = None;
@@ -148,7 +148,7 @@ impl MemoAlpha{
 
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
-		ms.sort_by_heurestic(Black);
+		ms.sort_by_heuristic(Black);
 
 		for m in ms{
 			if Some(m) == prev { continue; }

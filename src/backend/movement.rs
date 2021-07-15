@@ -9,7 +9,7 @@ use super::piece::{Piece, Color, Color::*};
 pub struct Move{
 	pub from: Position,
 	pub to: Position,
-	heurestic_value: Score,
+	heuristic_value: Score,
 	actual_value: Option<Score>,
 	pub promote: Option<Piece>
 }
@@ -29,8 +29,8 @@ pub struct Position{
 impl Move{
 	//Lager et nytt move. NB! Denne bryr seg kun om koordinater, der Origo er oppe til venstre.
 	//Dermed er e1->e2 det samme som (4, 7, 4, 6).
-	pub fn new(filefrom: usize, rankfrom: usize, fileto: usize, rankto: usize, promote: Option<Piece>, heurestic_value: Score) -> Self{
-		Move{from: Position{x: filefrom, y: rankfrom}, to: Position{x: fileto, y: rankto}, actual_value: None, promote, heurestic_value}
+	pub fn new(filefrom: usize, rankfrom: usize, fileto: usize, rankto: usize, promote: Option<Piece>, heuristic_value: Score) -> Self{
+		Move{from: Position{x: filefrom, y: rankfrom}, to: Position{x: fileto, y: rankto}, actual_value: None, promote, heuristic_value}
 	}
 
 	//Parser en streng på formen "e2e4". "e4", "e2-e4", "Pe4" er ikke gyldig og gir None.
@@ -59,8 +59,8 @@ impl Move{
 		}
 	}
 
-	pub fn heurestic_value(&self) -> Score{
-		self.heurestic_value
+	pub fn heuristic_value(&self) -> Score{
+		self.heuristic_value
 	}
 
 	pub fn set_actual_value(&mut self, s: Score){
@@ -85,9 +85,9 @@ impl Moves{
 		self.0.append(&mut other.0);
 	}
 
-	pub fn sort_by_heurestic(&mut self, c: Color){
-		if c == White { self.0.sort_by(|m1, m2| m2.heurestic_value().cmp(&m1.heurestic_value())); }
-		else { self.0.sort_by(|m1, m2| m1.heurestic_value().cmp(&m2.heurestic_value())); }
+	pub fn sort_by_heuristic(&mut self, c: Color){
+		if c == White { self.0.sort_by(|m1, m2| m2.heuristic_value().cmp(&m1.heuristic_value())); }
+		else { self.0.sort_by(|m1, m2| m1.heuristic_value().cmp(&m2.heuristic_value())); }
 	}
 
 	pub fn sort_by_actual(&mut self, c: Color){
@@ -165,12 +165,12 @@ mod move_tests{
 	fn can_sort_by_heurestic(){
 		let mut moves = Moves(vec![Move::new(0, 0, 0, 0, None, 50), Move::new(0, 0, 0, 0, None, 25), Move::new(0, 0, 0, 0, None, -10), Move::new(0, 0, 0, 0, None, 100)]);
 		let expected_white = Moves(vec![Move::new(0, 0, 0, 0, None, 100), Move::new(0, 0, 0, 0, None, 50), Move::new(0, 0, 0, 0, None, 25), Move::new(0, 0, 0, 0, None, -10)]);
-		moves.sort_by_heurestic(White);
+		moves.sort_by_heuristic(White);
 
 		assert_eq!(moves, expected_white);
 
 		let expected_black = Moves(vec![Move::new(0, 0, 0, 0, None, -10), Move::new(0, 0, 0, 0, None, 25), Move::new(0, 0, 0, 0, None, 50), Move::new(0, 0, 0, 0, None, 100)]);
-		moves.sort_by_heurestic(Black);
+		moves.sort_by_heuristic(Black);
 
 		assert_eq!(moves, expected_black);
 	}

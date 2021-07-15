@@ -80,7 +80,7 @@ impl Board{
 		}
 		self.zobrist.swap_sides();
 		self.hashes.push(self.zobrist.hash());
-		self.scores.push(self.scores[self.counter] + m.heurestic_value());
+		self.scores.push(self.scores[self.counter] + m.heuristic_value());
 		self.update_castle(m);
 		self.passants.push(passant);
 		self.moves.push(*m);
@@ -171,7 +171,7 @@ impl Board{
 		self.moves().contains(&m)
 	}
 
-	pub fn heurestic_value(&self) -> Score{
+	pub fn heuristic_value(&self) -> Score{
 		self.scores[self.counter]
 	}
 
@@ -755,22 +755,22 @@ mod score_test{
 	#[test]
 	fn same_moves_should_yield_same_score(){
 		let mut board = Board::new();
-		assert_eq!(0, board.heurestic_value());
+		assert_eq!(0, board.heuristic_value());
 
 		board.move_str("e2e4");
 		board.move_str("e7e5");
 
-		assert_eq!(0, board.heurestic_value());
+		assert_eq!(0, board.heuristic_value());
 
 		board.move_str("b1c3");
 		board.move_str("b8c6");
 
-		assert_eq!(0, board.heurestic_value());
+		assert_eq!(0, board.heuristic_value());
 
 		board.move_str("f1c5");
 		board.move_str("f8c4");
 
-		assert_eq!(0, board.heurestic_value());
+		assert_eq!(0, board.heuristic_value());
 	}
 }
 

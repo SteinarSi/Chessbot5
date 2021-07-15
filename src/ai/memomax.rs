@@ -54,7 +54,7 @@ impl AI for MemoMax{
 
 impl MemoMax{
 	fn maxi(&mut self, b: &mut Board, depth: usize) -> Score {
-		if depth == 0 { return b.heurestic_value(); }
+		if depth == 0 { return b.heuristic_value(); }
 
 		if let Some(m) = self.memo.get(&b.hash()){
 			if m.depth >= depth { return m.value; }
@@ -74,7 +74,7 @@ impl MemoMax{
 	}
 
 	fn mini(&mut self, b: &mut Board, depth: usize) -> Score{
-		if depth == 0 { return b.heurestic_value(); }
+		if depth == 0 { return b.heuristic_value(); }
 
 		if let Some(m) = self.memo.get(&b.hash()){
 			if m.depth >= depth { return m.value; }

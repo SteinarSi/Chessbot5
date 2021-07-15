@@ -22,7 +22,7 @@ impl AI for AlphaBeta{
 
 		let mut ret = Moves::new();
 		if b.color_to_move() == White{
-			ms.sort_by_heurestic(White);
+			ms.sort_by_heuristic(White);
 			let mut alpha = - INFINITY;
 			for mut m in ms{
 				b.move_piece(&m);
@@ -36,7 +36,7 @@ impl AI for AlphaBeta{
 			ret[0]
 		}
 		else{
-			ms.sort_by_heurestic(Black);
+			ms.sort_by_heuristic(Black);
 			let mut beta = INFINITY;
 			for mut m in ms{
 				b.move_piece(&m);
@@ -54,11 +54,11 @@ impl AI for AlphaBeta{
 
 impl AlphaBeta{
 	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, beta: Score, depth: usize) -> Score{
-		if depth <= 0 { return b.heurestic_value(); }
+		if depth <= 0 { return b.heuristic_value(); }
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		ms.sort_by_heurestic(White);
+		ms.sort_by_heuristic(White);
 
 		let mut value = - INFINITY;
 		for m in ms{
@@ -74,11 +74,11 @@ impl AlphaBeta{
 	}
 
 	fn minimize_beta(&mut self,  b: &mut Board, alpha: Score, mut beta: Score, depth: usize) -> Score{
-		if depth <= 0 { return b.heurestic_value(); }
+		if depth <= 0 { return b.heuristic_value(); }
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		ms.sort_by_heurestic(Black);
+		ms.sort_by_heuristic(Black);
 
 		let mut value = INFINITY;
 		for m in ms{

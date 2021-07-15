@@ -1,6 +1,6 @@
 use crate::backend::movement::*;
 
-//Basert på Killer heurestic: https://en.wikipedia.org/wiki/Killer_heuristic
+//Basert på Killer heuristic: https://en.wikipedia.org/wiki/Killer_heuristic
 pub struct Killerray{
 	arr: [Option<Move>; SIZE]
 }

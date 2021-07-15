@@ -10,7 +10,8 @@ use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha};
 use std::io;
 
 fn main(){
-    play_against_memoalpha();
+    //play_against_memoalpha();
+    compare_moves();
 }
 
 fn play_against_memoalpha() {
@@ -94,6 +95,7 @@ fn compare_moves(){
     println!("\nMemoMax: ");
     let mut board = Board::new();
     let mut memo = minimax::MiniMax::new();
+    memo.set_depth(5);
     for _ in 1..=10{
         let m = memo.search(board.clone());
         print!("{}: {}, ", m.to_string(), m.actual_value());
@@ -104,6 +106,7 @@ fn compare_moves(){
     println!("\nAlphaBeta: ");
     let mut board = Board::new();
     let mut alpha = alphabeta::AlphaBeta::new();
+    alpha.set_depth(5);
     for _ in 1..=10{
         let m = alpha.search(board.clone());
         print!("{}: {}, ", m.to_string(), m.actual_value());
@@ -113,9 +116,10 @@ fn compare_moves(){
     println!("\nMemoAlpha: ");
     let mut board = Board::new();
     let mut memo = memoalpha::MemoAlpha::new();
+    memo.set_depth(5);
     for _ in 1..=10{
         let m = memo.search(board.clone());
-        print!("{}: {}, ", m.to_string(), m.actual_value());
+        print!("{}", m.to_string());
         board.move_piece(&m);
     }
 }

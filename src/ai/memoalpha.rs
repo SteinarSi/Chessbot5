@@ -19,9 +19,6 @@ impl AI for MemoAlpha{
 	}
 
 	fn search(&mut self, mut b: Board) -> Move{
-		let ms = b.moves();
-		println!("Options: {:?}", ms);
-		if ms.len() == 0 { panic!("Cannot pick a move when none are available"); }
 		if b.color_to_move() == White{
 			self.maximize_alpha(&mut b, - INFINITY, INFINITY, self.depth);
 		}
@@ -29,7 +26,7 @@ impl AI for MemoAlpha{
 			self.minimize_beta(&mut b, - INFINITY, INFINITY, self.depth);
 		}
 		let deleted = self.memo.clean();
-		println!("Move: {}\nMap size: {}\nDeleted entries: {}", self.memo.get(&b.hash()).unwrap().best.unwrap().to_string(), self.memo.len(), deleted);
+		//println!("Move: {}\nMap size: {}\nDeleted entries: {}", self.memo.get(&b.hash()).unwrap().best.unwrap().to_string(), self.memo.len(), deleted);
 		self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}
 }

@@ -5,11 +5,15 @@ pub type Key = i64;
 const LIFETIME: u8 = 3;
 const ADD: u8 = LIFETIME - 1;
 
+
+//En wrapper rundt HashMap, for å memoisere tidligere evaluerte posisjoner.
+//Mellom hvert botsøk må vi kalle .clean() for å fjerne utdaterte oppslag.
 pub struct MemoMap{
 	map: HashMap<Key, Transposition>,
 	delete: u8
 }
 
+//Holder styr på informasjon vi har lyst til å lagre for hver tidligere evaluerte posisjon.
 #[derive(PartialEq, Debug)]
 pub struct Transposition{
 	pub value: Score,
@@ -19,8 +23,9 @@ pub struct Transposition{
 	age: u8
 }
 
+// 🏳️‍⚧️
 #[derive(PartialEq, Debug)]
-pub enum TransFlag{
+pub enum TransFlag{ 
 	EXACT,
 	UPPER_BOUND,
 	LOWER_BOUND

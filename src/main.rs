@@ -10,9 +10,9 @@ use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha, alphakill
 use std::io;
 
 fn main(){
-    play_against_memoalpha();
+    //play_against_memoalpha();
     //compare_moves();
-    //play_against_alphakiller();
+    play_against_alphakiller();
 }
 
 fn play_against_memoalpha() {

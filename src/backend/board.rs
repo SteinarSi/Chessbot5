@@ -171,18 +171,21 @@ impl Board{
 		self.legal_helper(m) && self.is_not_check_if(m)
 	}
 
-	fn legal_helper(&self, m: &Move) -> bool{
+	fn legal_helper(&mut self, m: &Move) -> bool{
 		let delta = (m.to.x as i8 - m.from.x as i8, m.to.y as i8 - m.from.y as i8);
 		if let Some(p) = self.get_reference_at(m.from.x, m.from.y){
 			if p.color != self.color_to_move { return false; }
+			if let Some(t) = self.get_reference_at(m.to.x, m.to.y){
+				if t.color == self.color_to_move() { return false; }
+			}
 			let len = delta.0.abs().max(delta.1.abs());
 			let vector = (delta.0 / len, delta.1 / len);
 			match p.piecetype{
 				PieceType::Pawn   => { return self.pawn_moves(m.from.x, m.from.y, p).contains(m); }
-				PieceType::Rook   => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0)].contains(&vector); }
-				PieceType::Bishop => { return [(1,  1), (-1, 1), (1, -1), (-1, -1)].contains(&vector); }
-				PieceType::Queen  => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0), (1, 1), (-1, 1), (1, -1), (-1, -1)].contains(&vector); }
-				PieceType::King   => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0), (1, 1), (-1, 1), (1, -1), (-1, -1)].contains(&vector); }
+				PieceType::Rook   => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0)].contains(&vector) && (1..len).all(|i| self.get_reference_at((m.from.x as i8 + vector.0*i) as usize, (m.from.y as i8 + vector.1*i) as usize).is_none()); }
+				PieceType::Bishop => { return [(1,  1), (-1, 1), (1, -1), (-1, -1)].contains(&vector) && (1..len).all(|i| self.get_reference_at((m.from.x as i8 + vector.0*i) as usize, (m.from.y as i8 + vector.1*i) as usize).is_none()); }
+				PieceType::Queen  => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0), (1, 1), (-1, 1), (1, -1), (-1, -1)].contains(&vector) && (1..len).all(|i| self.get_reference_at((m.from.x as i8 + vector.0*i) as usize, (m.from.y as i8 + vector.1*i) as usize).is_none()); }
+				PieceType::King   => { return self.king_moves(m.from.x, m.from.y, &self.get_clone_at(&Position{x: m.from.x, y:m.from.y}).unwrap()).contains(m); }
 				PieceType::Knight => { return delta.0.abs() + delta.1.abs() == 3; }
 			}
 		}
@@ -763,6 +766,32 @@ mod test_move_generation{
 		let mut expected = Moves::new();
 		expected.push(Move::from_str("d4d5").unwrap());
 		assert_eq!(expected, actual);
+	}
+
+	#[test]
+	fn cannot_capture_own(){
+		let mut board = Board::custom(EMPTY, White);
+		board.grid[4][0] = Piece::new('R');
+		board.grid[0][0] = Piece::new('Q');
+
+		assert!( ! board.is_legal(&Move::from_str("a4a8").unwrap()));
+		assert!( ! board.is_legal(&Move::from_str("a8a4").unwrap()));
+	}
+
+	#[test]
+	fn cannot_go_through_others(){
+		let mut board = Board::custom(EMPTY, White);
+		board.grid[7][0] = Piece::new('R');
+		board.grid[0][0] = Piece::new('r');
+		board.grid[4][0] = Piece::new('b');
+
+		assert!( ! board.is_legal(&Move::from_str("a1a8").unwrap()));
+		assert!(board.is_legal(&Move::from_str("a1a4").unwrap()));
+
+		board.color_to_move = Black;
+
+		assert!( ! board.is_legal(&Move::from_str("a8a4").unwrap()));
+		assert!( ! board.is_legal(&Move::from_str("a8a1").unwrap()));
 	}
 }
 

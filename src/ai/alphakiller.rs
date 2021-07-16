@@ -114,7 +114,6 @@ impl AlphaKiller{
 		if ms.len() == 0 { return b.end_score(); }
 
 		ms.sort_by_heuristic(White);
-
 		for m in ms{
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);

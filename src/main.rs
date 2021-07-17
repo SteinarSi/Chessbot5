@@ -6,19 +6,17 @@ mod backend;
 mod ai;
 
 use crate::backend::{board::*, movement::*};
-use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha, alphakiller};
+use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha, alphakiller, quiescence};
 use std::io;
 
 fn main(){
-    //play_against_memoalpha();
+    play_against(&mut quiescence::Quiescence::new(), 8);
     //compare_moves();
-    //play_against_alphakiller();
-    simulate_alphakiller();
 }
 
-fn play_against_memoalpha() {
+fn play_against(bot: &mut AI, depth: usize){
+    bot.set_depth(depth);
     let mut board = Board::new();
-    let mut memoalpha = memoalpha::MemoAlpha::new();
     println!("{}", board.to_string());
     
     loop{
@@ -28,29 +26,7 @@ fn play_against_memoalpha() {
         if board.move_str(&input).is_some(){
             println!("{}", board.to_string());
             println!("Thinking...");
-            let m = memoalpha.search(board.clone());
-            board.move_piece(&m);
-            println!("{}", board.to_string());
-        }
-        else{
-            println!("Nope, got an error parsing your move.");
-        }
-    }
-}
-
-fn play_against_alphakiller() {
-    let mut board = Board::new();
-    let mut killer = alphakiller::AlphaKiller::new();
-    println!("{}", board.to_string());
-    
-    loop{
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).unwrap();
-        input = input.trim().to_string();
-        if board.move_str(&input).is_some(){
-            println!("{}", board.to_string());
-            println!("Thinking...");
-            let m = killer.search(board.clone());
+            let m = bot.search(board.clone());
             board.move_piece(&m);
             println!("{}", board.to_string());
         }

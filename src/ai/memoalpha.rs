@@ -25,8 +25,7 @@ impl AI for MemoAlpha{
 		else{
 			self.minimize_beta(&mut b, - INFINITY, INFINITY, self.depth);
 		}
-		let deleted = self.memo.clean();
-		//println!("Move: {}\nMap size: {}\nDeleted entries: {}", self.memo.get(&b.hash()).unwrap().best.unwrap().to_string(), self.memo.len(), deleted);
+		self.memo.clean();
 		self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}
 }

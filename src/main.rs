@@ -1,17 +1,20 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 #![allow(non_camel_case_types)]
+#![allow(bare_trait_objects)]
 
 mod backend;
 mod ai;
 
 use crate::backend::{board::*, movement::*};
-use crate::ai::{interface::AI, minimax, memomax, alphabeta, memoalpha, alphakiller, quiescence};
+use crate::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::AlphaBeta, memoalpha::MemoAlpha, alphakiller::AlphaKiller, quiescence::Quiescence};
 use std::io;
 
 fn main(){
-    play_against(&mut quiescence::Quiescence::new(), 8);
+    //play_against(&mut quiescence::Quiescence::new(), 8);
     //compare_moves();
+    //vs(&mut Quiescence::new(), &mut AlphaKiller::new(), 8);
+    //compare(&mut [("AlphaBeta", &mut AlphaBeta::new()), ("AlphaKiller", &mut AlphaKiller::new()), ("Quiescence", &mut Quiescence::new())], 6, 7);
 }
 
 fn play_against(bot: &mut AI, depth: usize){
@@ -36,9 +39,9 @@ fn play_against(bot: &mut AI, depth: usize){
     }
 }
 
-fn simulate_alphabeta(){
+fn simulate(bot: &mut AI, depth: usize){
     let mut board = Board::new();
-    let mut bot = alphabeta::AlphaBeta::new();
+    bot.set_depth(depth);
 
     loop{
         println!("{}", board.to_string());
@@ -48,109 +51,40 @@ fn simulate_alphabeta(){
     }
 }
 
-fn simulate_alphakiller(){
+fn vs(bot1: &mut AI, bot2: &mut AI, depth: usize){
     let mut board = Board::new();
-    let mut bot = alphakiller::AlphaKiller::new();
-    bot.set_depth(8);
-
-    loop{
+    bot1.set_depth(depth);
+    bot2.set_depth(depth);
+    loop{    
         println!("{}", board.to_string());
-        let m = bot.search(board.clone());
-        println!("{}", m.to_string());
+        let m = bot1.search(board.clone());
+        board.move_piece(&m);
+
+        println!("{}", board.to_string());
+        let m = bot2.search(board.clone());
         board.move_piece(&m);
     }
 }
 
-fn minimax_vs_memomax(){
-    let mut board = Board::new();
-    let mut mini = minimax::MiniMax::new();
-    let mut memo = memomax::MemoMax::new();
 
-    loop{
-        println!("{}", board.to_string());
-        let m = mini.search(board.clone());
-        println!("{}: {}", m.to_string(), m.actual_value());
-        board.move_piece(&m);
-        println!("{}", board.to_string());
-        let m = memo.search(board.clone());
-        println!("{}: {}", m.to_string(), m.actual_value());
-        board.move_piece(&m);
-    }
-}
-
-fn memomax_vs_alphabeta(){
-    let mut board = Board::new();
-    let mut alphabeta = alphabeta::AlphaBeta::new();
-    let mut memo = memomax::MemoMax::new();
-
-    loop{
-        println!("{}", board.to_string());
-        let m = alphabeta.search(board.clone());
-        println!("{}: {}", m.to_string(), m.actual_value());
-        board.move_piece(&m);
-        println!("{}", board.to_string());
-        let m = memo.search(board.clone());
-        println!("{}: {}", m.to_string(), m.actual_value());
-        board.move_piece(&m);
-    }
-}
-
-fn compare_moves(){
-    /*println!("\nMiniMax: ");
-    let mut board = board::Board::new();
-    let mut mini = minimax::MiniMax::new();
-    for _ in 1..=10{
-        let m = mini.search(board.clone());
-        print!("{}: {}, ", m.to_string(), m.actual_value());
-        board.move_piece(&m);
-    }
-    */
-    /*
-    println!("\nMemoMax: ");
-    let mut board = Board::new();
-    let mut memo = minimax::MiniMax::new();
-    memo.set_depth(5);
-    for _ in 1..=10{
-        let m = memo.search(board.clone());
-        print!("{}: {}, ", m.to_string(), m.actual_value());
-        board.move_piece(&m);
-    }*/
-
-
-    println!("\nAlphaBeta: ");
-    let mut board = Board::new();
-    let mut alpha = alphabeta::AlphaBeta::new();
-    alpha.set_depth(8);
-    for _ in 1..=10{
-        let m = alpha.search(board.clone());
-        print!("{}", m.to_string());
-        board.move_piece(&m);
+fn compare(l: &mut [(&str, &mut AI)], n: i8, depth: usize){
+    for (name, bot) in l{
+        bot.set_depth(depth);
+        println!("{}:", name);
+        let mut b = Board::new();
+        for _ in 0..n{
+            let m = bot.search(b.clone());
+            print!("{}", m.to_string());
+            b.move_piece(&m);
+        }
+        println!("\n");
     }
 
-    println!("\nMemoAlpha: ");
-    let mut board = Board::new();
-    let mut memo = memoalpha::MemoAlpha::new();
-    memo.set_depth(8);
-    for _ in 1..=10{
-        let m = memo.search(board.clone());
-        print!("{}", m.to_string());
-        board.move_piece(&m);
-    }
-
-    println!("\nAlphaKiller: ");
-    let mut board = Board::new();
-    let mut killer = alphakiller::AlphaKiller::new();
-    killer.set_depth(8);
-    for _ in 1..=10{
-        let m = killer.search(board.clone());
-        print!("{}", m.to_string());
-        board.move_piece(&m);
-    }
 }
 
 fn solve_position(s: &str, c: Color) -> Moves{
     let b = Board::custom(s, c);
-    let mut killer = alphakiller::AlphaKiller::new();
+    let mut killer = Quiescence::new();
     killer.set_depth(10);
     killer.principal_variation(b)
 

@@ -11,9 +11,7 @@ pub struct Quiescence{
 }
 
 impl AI for Quiescence{
-	fn new() -> Self
-	where Self: Sized
-	{
+	fn new() -> Self{
 		Quiescence{memo: MemoMap::new(), depth: INITIAL_DEPTH, killerray: Killerray::new()}
 	}
 
@@ -28,7 +26,7 @@ impl AI for Quiescence{
 		else{
 			self.minimize_beta(&mut b, - INFINITY, INFINITY, self.depth);
 		}
-		let deleted = self.memo.clean();
+		self.memo.clean();
 		self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}
 }

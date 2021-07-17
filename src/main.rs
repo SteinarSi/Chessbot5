@@ -11,9 +11,9 @@ use std::io;
 
 fn main(){
     //play_against_memoalpha();
-    compare_moves();
+    //compare_moves();
     //play_against_alphakiller();
-    //simulate_alphakiller();
+    simulate_alphakiller();
 }
 
 fn play_against_memoalpha() {
@@ -174,8 +174,8 @@ fn compare_moves(){
 
 fn solve_position(s: &str, c: Color) -> Moves{
     let b = Board::custom(s, c);
-    let mut memo = memoalpha::MemoAlpha::new();
-
-    memo.principal_variation(b)
+    let mut killer = alphakiller::AlphaKiller::new();
+    killer.set_depth(10);
+    killer.principal_variation(b)
 
 }

@@ -115,7 +115,7 @@ impl AlphaKiller{
 		if ms.len() == 0 { return b.end_score(); }
 
 		if let Some(m) = kill{
-			assert!(ms.contains(&m), "\n{}{}\n{}\n{:?}\nValues: {} vs {}, also {:?}", b.to_string(), m.to_string(), b.color_to_move(), ms, m.heuristic_value(), ms[0].heuristic_value(), ms[0].promote);
+			assert!(ms.contains(&m), "\n{}{}", b.to_string(), m.to_string());
 		}
 
 		ms.sort_by_heuristic(White);

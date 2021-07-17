@@ -175,6 +175,7 @@ impl Board{
 		let delta = (m.to.x as i8 - m.from.x as i8, m.to.y as i8 - m.from.y as i8);
 		if let Some(p) = self.get_reference_at(m.from.x, m.from.y){
 			if p.color != self.color_to_move { return false; }
+			if m.promote.is_some() && p.piecetype != PieceType::Pawn { return false; }
 			if let Some(t) = self.get_reference_at(m.to.x, m.to.y){
 				if t.color == self.color_to_move() { return false; }
 			}

@@ -54,19 +54,23 @@ impl Move{
 		}
 	}
 
+	pub fn heuristic_value(&self) -> Score{
+		self.heuristic_value
+	}
+
+	pub fn set_heuristic_value(&mut self, s: Score){
+		self.heuristic_value = s;
+	}
+
+	pub fn set_actual_value(&mut self, s: Score){
+		self.actual_value = Some(s);
+	}
+
 	pub fn actual_value(&self) -> Score{
 		match self.actual_value{
 			None    => { panic!("This move has no associated value."); }
 			Some(v) => v
 		}
-	}
-
-	pub fn heuristic_value(&self) -> Score{
-		self.heuristic_value
-	}
-
-	pub fn set_actual_value(&mut self, s: Score){
-		self.actual_value = Some(s);
 	}
 }
 

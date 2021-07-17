@@ -11,9 +11,9 @@ use std::io;
 
 fn main(){
     //play_against_memoalpha();
-    //compare_moves();
+    compare_moves();
     //play_against_alphakiller();
-    simulate_alphakiller();
+    //simulate_alphakiller();
 }
 
 fn play_against_memoalpha() {
@@ -144,7 +144,7 @@ fn compare_moves(){
     println!("\nAlphaBeta: ");
     let mut board = Board::new();
     let mut alpha = alphabeta::AlphaBeta::new();
-    alpha.set_depth(7);
+    alpha.set_depth(8);
     for _ in 1..=10{
         let m = alpha.search(board.clone());
         print!("{}", m.to_string());
@@ -154,7 +154,7 @@ fn compare_moves(){
     println!("\nMemoAlpha: ");
     let mut board = Board::new();
     let mut memo = memoalpha::MemoAlpha::new();
-    memo.set_depth(7);
+    memo.set_depth(8);
     for _ in 1..=10{
         let m = memo.search(board.clone());
         print!("{}", m.to_string());
@@ -164,7 +164,7 @@ fn compare_moves(){
     println!("\nAlphaKiller: ");
     let mut board = Board::new();
     let mut killer = alphakiller::AlphaKiller::new();
-    killer.set_depth(7);
+    killer.set_depth(8);
     for _ in 1..=10{
         let m = killer.search(board.clone());
         print!("{}", m.to_string());

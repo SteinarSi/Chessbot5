@@ -241,6 +241,15 @@ impl Board{
 	//Denne må derfor kun kalles etter at b.is_legal() er True.
 	pub fn value_of(&self, m: &Move) -> Score{
 		let p = self.get_reference_at(m.from.x, m.from.y).unwrap();
+		if p.piecetype == PieceType::King && (m.from.x as i8 - m.to.x as i8).abs() == 2{
+			match (m.from.x, m.from.y, m.to.x, m.to.y) {
+				(4, 7, 6, 7) => { return 49; },
+				(4, 7, 2, 7) => { return 40; },
+				(4, 0, 6, 0) => { return-49; },
+				(4, 0, 2, 0) => { return-40; }
+				_ => {}
+			}
+		}
 		let mut ret = p.value_at(&m.to) - p.value_at(&m.from);
 		if let Some(t) = self.get_reference_at(m.to.x, m.to.y){
 			ret -= t.combined_value_at(&m.to);
@@ -1116,6 +1125,9 @@ mod pawn_tests{
 
 		assert_eq!(board.get_reference_at(3, 3), &None);
 	}
+
+	//#[test]
+	//fn 
 
 	#[test]
 	fn can_promote_to_queen(){

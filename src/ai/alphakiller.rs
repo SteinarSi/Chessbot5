@@ -77,7 +77,7 @@ impl AlphaKiller{
 					b.go_back();
 
 					if value >= beta{
-						self.killerray.put(m.clone(), depth);
+						self.killerray.put(m.clone(), b.counter());
 						self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 						return value;
 					}
@@ -90,7 +90,7 @@ impl AlphaKiller{
 				}
 			}
 		}
-		if let Some(m) = self.killerray.get(depth){
+		if let Some(m) = self.killerray.get(b.counter()){
 			if b.is_legal(&m){
 				kill = Some(m);
 				b.move_piece(&m);
@@ -113,6 +113,10 @@ impl AlphaKiller{
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
+		//if let Some(m) = kill{
+		//	assert!(ms.contains(&m), "\n{}{}\n{}\n{:?}\nValues: {} vs {}, also {:?}", b.to_string(), m.to_string(), b.color_to_move(), ms, m.heuristic_value(), ms[0].heuristic_value(), ms[0].promote);
+		//}
+
 		ms.sort_by_heuristic(White);
 		for m in ms{
 			if Some(m) == prev || Some(m) == kill { continue; }
@@ -121,7 +125,7 @@ impl AlphaKiller{
 			b.go_back();
 
 			if value >= beta{
-				self.killerray.put(m.clone(), depth);
+				self.killerray.put(m.clone(), b.counter());
 				self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 				return value;
 			}
@@ -160,7 +164,7 @@ impl AlphaKiller{
 					b.go_back();
 
 					if value <= alpha{
-						self.killerray.put(m, depth);
+						self.killerray.put(m, b.counter());
 						self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
 						return value;
 					}
@@ -174,7 +178,7 @@ impl AlphaKiller{
 			}
 		}
 
-		if let Some(m) = self.killerray.get(depth){
+		if let Some(m) = self.killerray.get(b.counter()){
 			if b.is_legal(&m){
 				kill = Some(m);
 				b.move_piece(&m);
@@ -197,6 +201,10 @@ impl AlphaKiller{
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 		ms.sort_by_heuristic(Black);
+
+		//if let Some(m) = kill{
+		//	assert!(ms.contains(&m), "\n{}{}", b.to_string(), m.to_string());
+		//}
 
 		for m in ms{
 			if Some(m) == prev || Some(m) == kill { continue; }

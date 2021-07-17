@@ -3,6 +3,8 @@ use std::fmt;
 use std::char;
 use std::iter::FromIterator;
 use std::ops::Index;
+use rand::thread_rng;
+use rand::prelude::SliceRandom;
 use super::piece::{Piece, Color, Color::*};
 
 #[derive(Copy, Clone)]
@@ -101,6 +103,10 @@ impl Moves{
 
 	pub fn len(&self) -> usize{
 		self.0.len()
+	}
+
+	pub fn shuffle(&mut self){
+		self.0.shuffle(&mut thread_rng());
 	}
 }
 

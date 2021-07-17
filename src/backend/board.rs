@@ -179,6 +179,7 @@ impl Board{
 				if t.color == self.color_to_move() { return false; }
 			}
 			let len = delta.0.abs().max(delta.1.abs());
+			if delta.0.abs() != 0 && delta.1.abs() != 0 && delta.0.abs() + delta.1.abs() == 3 { return p.piecetype == PieceType::Knight; }
 			let vector = (delta.0 / len, delta.1 / len);
 			match p.piecetype{
 				PieceType::Pawn   => { return self.pawn_moves(m.from.x, m.from.y, p).contains(m); }
@@ -186,7 +187,7 @@ impl Board{
 				PieceType::Bishop => { return [(1,  1), (-1, 1), (1, -1), (-1, -1)].contains(&vector) && (1..len).all(|i| self.get_reference_at((m.from.x as i8 + vector.0*i) as usize, (m.from.y as i8 + vector.1*i) as usize).is_none()); }
 				PieceType::Queen  => { return [(0, -1), ( 1, 0), (0,  1), (-1,  0), (1, 1), (-1, 1), (1, -1), (-1, -1)].contains(&vector) && (1..len).all(|i| self.get_reference_at((m.from.x as i8 + vector.0*i) as usize, (m.from.y as i8 + vector.1*i) as usize).is_none()); }
 				PieceType::King   => { return self.king_moves(m.from.x, m.from.y, &self.get_clone_at(&Position{x: m.from.x, y:m.from.y}).unwrap()).contains(m); }
-				PieceType::Knight => { return delta.0.abs() + delta.1.abs() == 3; }
+				PieceType::Knight => { return false; }//{ return delta.0.abs() + delta.1.abs() == 3; }
 			}
 		}
 		false
@@ -234,6 +235,22 @@ impl Board{
 			}
 			else { 0 } //Patt
 		}
+	}
+
+	//NB! Denne kræsjer ofte når trekket er ulovlig. 
+	//Denne må derfor kun kalles etter at b.is_legal() er True.
+	pub fn value_of(&self, m: &Move) -> Score{
+		let p = self.get_reference_at(m.from.x, m.from.y).unwrap();
+		let mut ret = p.value_at(&m.to) - p.value_at(&m.from);
+		if let Some(t) = self.get_reference_at(m.to.x, m.to.y){
+			ret -= t.combined_value_at(&m.to);
+		}
+		if let Some(q) = m.promote{
+			ret -= p.combined_value_at(&m.to);
+			ret += q.combined_value_at(&m.to);
+		}
+			//TODOOOO: castling, en passant
+		ret
 	}
 
 	//Sjekker om et trekk leder til at kongen står i sjakk eller ikke.
@@ -370,7 +387,6 @@ impl Board{
 		passant
 	}
 
-	//Kongetrekk og hestetrekk, dvs brikker som ikke kan flytte mer enn et skritt om gangen.
 	fn knight_moves(&self, x: usize, y: usize, p: &Piece) -> Moves{
 		let mut ret = Moves::new();
 		let color = self.color_to_move;
@@ -383,8 +399,9 @@ impl Board{
 			if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { continue; }
 			if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 				if t.color != color { 
-					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos) + p.value_at(&to_pos) - from_value));
-				} else { continue; }
+					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos)+ p.value_at(&to_pos) - from_value));
+				} 
+				continue;
 			}
 			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
 		}
@@ -405,7 +422,8 @@ impl Board{
 			if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 				if t.color != color { 
 					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos) + p.value_at(&to_pos) - from_value));
-				} else { continue; }
+				}
+				continue;
 			}
 			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
 		}
@@ -793,6 +811,55 @@ mod test_move_generation{
 		assert!( ! board.is_legal(&Move::from_str("a8a4").unwrap()));
 		assert!( ! board.is_legal(&Move::from_str("a8a1").unwrap()));
 	}
+
+	#[test]
+	fn real_case(){
+		let s = "\
+r-b-kbnr
+pppp-ppp
+--n--q--
+----P---
+--------
+--N-B---
+PPP-PPPP
+R--QKBNR";
+		let mut b = Board::custom(s, Black);
+
+		assert!( ! b.is_legal(&Move::from_str("f6e4").unwrap()));
+	}
+
+	#[test]
+	fn another_real_case(){
+		let s = "\n
+rnbqkb-r
+ppp-pppp
+--------
+---p----
+--------
+--Q-----
+PPPP-PPP
+R-B-KBNR";
+		let mut b = Board::custom(s, White);
+
+		assert!( ! b.is_legal(&Move::from_str("c3d5").unwrap()));
+	}	
+
+	#[test]
+	fn a_third_real_case(){
+		let s = "\
+rnb-kbnr
+pp-ppppp
+--------
+--------
+---pPB--
+--N-----
+PqP--PPP
+R--QKBNR";
+		let mut b = Board::custom(s, Black);
+		let m = &Move::from_str("b2a1").unwrap();
+		assert!(b.is_legal(&m));
+		assert!(b.moves().contains(&m));
+	}
 }
 
 #[cfg(test)]
@@ -818,6 +885,44 @@ mod score_test{
 		board.move_str("f8c4");
 
 		assert_eq!(0, board.heuristic_value());
+	}
+
+	#[test]
+	fn value_of_should_yield_same_value_as_heurestic(){
+		let mut board = Board::new();
+
+		for _ in 1..=20{
+			let mut ms = board.moves();
+			ms.shuffle();
+			if ms.len() == 0 { break; }
+			let first = ms[0].clone();
+			for m in ms{
+				print!("{}: {} ", m.to_string(), m.heuristic_value());
+				assert_eq!(m.heuristic_value(), board.value_of(&m), "\n{}{}", board.to_string(), m.to_string());
+			}
+			println!("\n");
+			board.move_piece(&first);
+		}
+	}
+
+	#[test]
+	fn knight_gets_points_for_capturing(){
+		let s = "\
+r-bqkbnr
+pppppppp
+--n-----
+--------
+-P---P--
+--------
+P-PPP-PP
+RNBQKBNR";
+		let mut b = Board::custom(s, Black);
+
+		let ms = b.moves();
+		let m1 = ms[ms.len()-1];
+		let m2 = Move::from_str("c6b4").unwrap();
+
+		assert_eq!(m1.heuristic_value(), b.value_of(&m2));
 	}
 }
 
@@ -1238,6 +1343,7 @@ R---K--R";
 
 	//Denne testen er kun for å finne verdien til de forskjellige rokadene, 
 	//siden vi ikke har lov til å finne dem i en const.
+	#[ignore]
 	#[test]
 	fn find_castle_values(){
 	    let kw = Piece::new('K').unwrap();
@@ -1252,8 +1358,7 @@ R---K--R";
     		   + rb.value_at(&Position{x: 5, y: 0}) - rb.value_at(&Position{x: 7, y: 0});
 		let bl = kb.value_at(&Position{x: 2, y: 0}) - kb.value_at(&Position{x: 4, y: 0})
 			   + rb.value_at(&Position{x: 3, y: 0}) - rb.value_at(&Position{x: 0, y: 0});
-	    println!("White short: {}\nWhite long: {}\nBlack short: {}\nBlack long: {}", ws, wl, bs, bl);
-	    //panic!();
+	    panic!("White short: {}\nWhite long: {}\nBlack short: {}\nBlack long: {}", ws, wl, bs, bl);
 	}
 
 	#[test]

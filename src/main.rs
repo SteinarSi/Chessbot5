@@ -12,7 +12,8 @@ use std::io;
 fn main(){
     //play_against_memoalpha();
     //compare_moves();
-    play_against_alphakiller();
+    //play_against_alphakiller();
+    simulate_alphakiller();
 }
 
 fn play_against_memoalpha() {
@@ -71,6 +72,19 @@ fn simulate_alphabeta(){
     }
 }
 
+fn simulate_alphakiller(){
+    let mut board = Board::new();
+    let mut bot = alphakiller::AlphaKiller::new();
+    bot.set_depth(8);
+
+    loop{
+        println!("{}", board.to_string());
+        let m = bot.search(board.clone());
+        println!("{}", m.to_string());
+        board.move_piece(&m);
+    }
+}
+
 fn minimax_vs_memomax(){
     let mut board = Board::new();
     let mut mini = minimax::MiniMax::new();
@@ -115,6 +129,7 @@ fn compare_moves(){
         board.move_piece(&m);
     }
     */
+    /*
     println!("\nMemoMax: ");
     let mut board = Board::new();
     let mut memo = minimax::MiniMax::new();
@@ -123,25 +138,35 @@ fn compare_moves(){
         let m = memo.search(board.clone());
         print!("{}: {}, ", m.to_string(), m.actual_value());
         board.move_piece(&m);
-    }
+    }*/
 
 
     println!("\nAlphaBeta: ");
     let mut board = Board::new();
     let mut alpha = alphabeta::AlphaBeta::new();
-    alpha.set_depth(5);
+    alpha.set_depth(7);
     for _ in 1..=10{
         let m = alpha.search(board.clone());
-        print!("{}: {}, ", m.to_string(), m.actual_value());
+        print!("{}", m.to_string());
         board.move_piece(&m);
     }
 
     println!("\nMemoAlpha: ");
     let mut board = Board::new();
     let mut memo = memoalpha::MemoAlpha::new();
-    memo.set_depth(5);
+    memo.set_depth(7);
     for _ in 1..=10{
         let m = memo.search(board.clone());
+        print!("{}", m.to_string());
+        board.move_piece(&m);
+    }
+
+    println!("\nAlphaKiller: ");
+    let mut board = Board::new();
+    let mut killer = alphakiller::AlphaKiller::new();
+    killer.set_depth(7);
+    for _ in 1..=10{
+        let m = killer.search(board.clone());
         print!("{}", m.to_string());
         board.move_piece(&m);
     }

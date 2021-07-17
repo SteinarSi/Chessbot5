@@ -258,7 +258,21 @@ impl Board{
 			ret -= p.combined_value_at(&m.to);
 			ret += q.combined_value_at(&m.to);
 		}
-			//TODOOOO: castling, en passant
+
+		if let Some(ps) = self.passants[self.counter]{
+			if m.to.x == ps as usize {
+				if m.to.y == 2 && self.color_to_move == White {
+					let pos = Position{x: m.to.x, y: 3};
+					ret -= self.get_reference_at(m.to.x, 3).unwrap().combined_value_at(&pos);
+				} 
+				else if m.to.y == 5 && self.color_to_move == Black {
+					let pos = Position{x: m.to.x, y: 4};
+					ret -= self.get_reference_at(m.to.x, 4).unwrap().combined_value_at(&pos);
+				}
+			}
+
+		}
+
 		ret
 	}
 
@@ -363,9 +377,7 @@ impl Board{
 		if (m.from.y as i8 - m.to.y as i8).abs() == 2{
 			passant = Some(m.from.x as i8);
 			self.zobrist.update_en_passant(m.from.x);
-		}else { 
-			passant = None; 
-		}
+		}else { passant = None; }
 
 		if let Some(ps) = self.passants[self.counter]{
 			if m.to.x == ps as usize {
@@ -1126,8 +1138,30 @@ mod pawn_tests{
 		assert_eq!(board.get_reference_at(3, 3), &None);
 	}
 
-	//#[test]
-	//fn 
+	#[test]
+	fn en_passant_yields_score(){
+		let mut b1 = Board::new();
+		let mut b2 = Board::new();
+
+		b1.grid[3][0] = Piece::new('P');
+		b2.grid[3][0] = Piece::new('P');
+
+		b1.color_to_move = Black;
+		b2.color_to_move = Black;
+
+		assert_eq!(b1, b2);
+
+		b1.move_str("b7b5");
+		b2.move_str("b7b6");
+
+		assert_ne!(b1, b2);
+
+		b1.move_str("a5b6");
+		b2.move_str("a5b6");
+
+		assert_eq!(b1.grid, b2.grid);
+		assert_eq!(b1.heuristic_value(), b2.heuristic_value());
+	}
 
 	#[test]
 	fn can_promote_to_queen(){

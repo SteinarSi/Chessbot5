@@ -166,10 +166,6 @@ impl Quiescence{
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
-		if let Some(m) = kill{
-			assert!(ms.contains(&m), "\n{}{}", b.to_string(), m.to_string());
-		}
-
 		ms.sort_by_heuristic(White);
 		for m in ms{
 			if Some(m) == prev || Some(m) == kill { continue; }
@@ -255,10 +251,6 @@ impl Quiescence{
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 		ms.sort_by_heuristic(Black);
-
-		if let Some(m) = kill{
-			assert!(ms.contains(&m), "\n{}{}", b.to_string(), m.to_string());
-		}
 
 		for m in ms{
 			if Some(m) == prev || Some(m) == kill { continue; }

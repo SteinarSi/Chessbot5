@@ -11,16 +11,24 @@ use crate::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::Al
 use std::io;
 
 fn main(){
-    //play_against(&mut quiescence::Quiescence::new(), 8);
+    simulate(&mut Quiescence::new(), 8);
+    //play_against(&mut Quiescence::new(), 8, Black);
     //compare_moves();
     //vs(&mut Quiescence::new(), &mut AlphaKiller::new(), 8);
     //compare(&mut [("AlphaBeta", &mut AlphaBeta::new()), ("AlphaKiller", &mut AlphaKiller::new()), ("Quiescence", &mut Quiescence::new())], 6, 7);
 }
 
-fn play_against(bot: &mut AI, depth: usize){
+fn play_against(bot: &mut AI, depth: usize, c: Color){
     bot.set_depth(depth);
     let mut board = Board::new();
     println!("{}", board.to_string());
+
+    if c == Black{
+        println!("Thinking...");
+            let m = bot.search(board.clone());
+            board.move_piece(&m);
+            println!("{}", board.to_string());
+    }
     
     loop{
         let mut input = String::new();

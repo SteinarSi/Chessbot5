@@ -30,7 +30,8 @@ pub struct Board{
 	wkingpos: Vec<Position>,
 	bkingpos: Vec<Position>,
 	hashes: Vec<i64>,
-	zobrist: Zobrist
+	zobrist: Zobrist,
+	queens: Vec<u8>
 
 	//TODO blir mange flere felt her etter hvert.
 }
@@ -52,7 +53,9 @@ impl Board{
 
 	pub fn move_piece(&mut self, m: &Move){
 		let pie = self.get_clone_at(&m.from).unwrap();
+		let mut queens = self.queens[self.counter];
 		if let Some(target) = self.get_clone_at(&m.to){
+			if target.piecetype == PieceType::Queen { queens -= 1; }
 			self.zobrist.update_pos(&m.to, &target);
 			self.graveyard.push(TombStone{piece: target, position: m.to, date: self.counter})
 		}
@@ -78,6 +81,7 @@ impl Board{
 			self.wkingpos.push(self.wkingpos[self.counter]); 
 			self.bkingpos.push(self.bkingpos[self.counter]); 
 		}
+		self.queens.push(queens);
 		self.zobrist.swap_sides();
 		self.hashes.push(self.zobrist.hash());
 		self.scores.push(self.scores[self.counter] + m.heuristic_value());
@@ -90,6 +94,7 @@ impl Board{
 
 	pub fn go_back(&mut self){
 		let m = self.moves.pop().expect("Cannot go further back!");
+		self.queens.pop();
 		self.hashes.pop();
 		self.scores.pop();
 		self.castles.pop();
@@ -651,6 +656,10 @@ impl Board{
 		ret
 	}
 
+	fn is_endgame(&self) -> bool{
+		self.queens[self.counter] == 0
+	}
+
 	pub fn custom(s: &str, c: Color) -> Self{
 		let s = s.replace(&['\n'][..], "");
 		let mut grid = [[None; BOARD_SIZE]; BOARD_SIZE];
@@ -658,12 +667,16 @@ impl Board{
 		let mut x = 0;
 		let mut wk = (100, 100);
 		let mut bk = (100, 100);
+		let mut queens = 0;
 		for c in s.chars(){
 			grid[y][x] = Piece::new(c);
 			if let Some(p) = grid[y][x]{
 				if p.piecetype == PieceType::King {
 					if p.color == White { wk = (x, y); }
 					else { bk = (x, y); }
+				}
+				else if p.piecetype == PieceType::Queen{
+					queens += 1;
 				}
 	  		}
 			x += 1;
@@ -676,7 +689,7 @@ impl Board{
 		Board{grid, color_to_move: c, counter: 0, graveyard: Vec::new(), 
 			moves: Moves::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)],
 			scores: vec![0], wkingpos: vec![Position{x: wk.0, y: wk.1}], bkingpos: vec![Position{x: bk.0, y: bk.1}],
-		 	hashes: vec![zobrist.hash()], zobrist,}
+		 	hashes: vec![zobrist.hash()], zobrist, queens: vec![queens]}
 	}
 }
 
@@ -945,6 +958,34 @@ RNBQKBNR";
 		let m2 = Move::from_str("c6b4").unwrap();
 
 		assert_eq!(m1.heuristic_value(), b.value_of(&m2));
+	}
+
+	#[test]
+	fn queen_count(){
+		let mut b = Board::new();
+		assert_eq!(2, b.queens[b.counter]);
+
+		b.move_str("e2e4");
+		b.move_str("e7e5");
+		b.move_str("d1f3");
+		b.move_str("d8f6");
+		assert_eq!(2, b.queens[b.counter]);
+
+		b.move_str("f3f6");
+		assert_eq!(1, b.queens[b.counter]);
+
+		assert!( ! b.is_endgame());
+
+		b.move_str("g8f6");
+		assert_eq!(0, b.queens[b.counter]);
+
+		assert!(b.is_endgame());
+
+		b.go_back();
+		assert_eq!(1, b.queens[b.counter]);
+
+		b.go_back();
+		assert_eq!(2, b.queens[b.counter]);
 	}
 }
 

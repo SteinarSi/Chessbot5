@@ -256,24 +256,25 @@ impl Board{
 				_ => {}
 			}
 		}
-		let mut ret = p.value_at(&m.to) - p.value_at(&m.from);
+		let b = self.is_endgame();
+		let mut ret = p.value_at(&m.to, b) - p.value_at(&m.from, b);
 		if let Some(t) = self.get_reference_at(m.to.x, m.to.y){
-			ret -= t.combined_value_at(&m.to);
+			ret -= t.combined_value_at(&m.to, b);
 		}
 		if let Some(q) = m.promote{
-			ret -= p.combined_value_at(&m.to);
-			ret += q.combined_value_at(&m.to);
+			ret -= p.combined_value_at(&m.to, b);
+			ret += q.combined_value_at(&m.to, b);
 		}
 
 		if let Some(ps) = self.passants[self.counter]{
 			if m.to.x == ps as usize {
 				if m.to.y == 2 && self.color_to_move == White {
 					let pos = Position{x: m.to.x, y: 3};
-					ret -= self.get_reference_at(m.to.x, 3).unwrap().combined_value_at(&pos);
+					ret -= self.get_reference_at(m.to.x, 3).unwrap().combined_value_at(&pos, b);
 				} 
 				else if m.to.y == 5 && self.color_to_move == Black {
 					let pos = Position{x: m.to.x, y: 4};
-					ret -= self.get_reference_at(m.to.x, 4).unwrap().combined_value_at(&pos);
+					ret -= self.get_reference_at(m.to.x, 4).unwrap().combined_value_at(&pos, b);
 				}
 			}
 
@@ -417,20 +418,21 @@ impl Board{
 	fn knight_moves(&self, x: usize, y: usize, p: &Piece) -> Moves{
 		let mut ret = Moves::new();
 		let color = self.color_to_move;
+		let b = self.is_endgame();
 		for dir in p.directions(){
 			let to_x = x as i8 + dir.0;
 			let to_y = y as i8 + dir.1;
 			let from_pos = Position{x, y};
 			let to_pos = Position{x: to_x as usize, y: to_y as usize};
-			let from_value = p.value_at(&from_pos);
+			let from_value = p.value_at(&from_pos, b);
 			if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { continue; }
 			if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 				if t.color != color { 
-					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos)+ p.value_at(&to_pos) - from_value));
+					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos, b)+ p.value_at(&to_pos, b) - from_value));
 				} 
 				continue;
 			}
-			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
+			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos, b) - from_value));
 		}
 		ret
 	}
@@ -438,21 +440,22 @@ impl Board{
 	fn king_moves(&mut self, x: usize, y: usize, p: &Piece) -> Moves{
 		let mut ret = Moves::new();
 		let color = self.color_to_move;
+		let b = self.is_endgame();
 		self.grid[y][x] = None;
 		for dir in p.directions(){
 			let to_x = x as i8 + dir.0;
 			let to_y = y as i8 + dir.1;
 			let from_pos = Position{x, y};
 			let to_pos = Position{x: to_x as usize, y: to_y as usize};
-			let from_value = p.value_at(&from_pos);
+			let from_value = p.value_at(&from_pos, b);
 			if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { continue; }
 			if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 				if t.color != color { 
-					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos) + p.value_at(&to_pos) - from_value));
+					ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos, b) + p.value_at(&to_pos, b) - from_value));
 				}
 				continue;
 			}
-			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
+			ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos, b) - from_value));
 		}
 		self.grid[y][x] = Some(*p);
 		ret
@@ -462,8 +465,8 @@ impl Board{
 	fn running_moves(&self, x: usize, y: usize, p: &Piece) -> Moves{
 		let mut ret = Moves::new();
 		let color = self.color_to_move;
-		let from_pos = Position{x, y};
-		let from_value = p.value_at(&from_pos);
+		let b = self.is_endgame();
+		let from_value = p.value_at(&Position{x, y}, b);
 		for dir in p.directions(){
 			let mut to_x = x as i8 + dir.0;
 			let mut to_y = y as i8 + dir.1;
@@ -473,11 +476,11 @@ impl Board{
 				if to_x < 0 || to_x > 7 || to_y < 0 || to_y > 7 { break; }
 				if let &Some(t) = self.get_reference_at(to_x as usize, to_y as usize) {
 					if t.color != color { 
-						ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos) + p.value_at(&to_pos) - from_value)); 
+						ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, - t.combined_value_at(&to_pos, b) + p.value_at(&to_pos, b) - from_value)); 
 					}
 					break;
 				}
-				ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value));
+				ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos, b) - from_value));
 				to_x += dir.0;
 				to_y += dir.1;
 			}
@@ -489,7 +492,8 @@ impl Board{
 	fn pawn_moves(&self, x: usize, y: usize, p: &Piece) -> Moves{
 		let mut ret = Moves::new();
 		let from_pos = Position{x, y};
-		let from_value = p.value_at(&from_pos);
+		let b = self.is_endgame();
+		let from_value = p.value_at(&from_pos, b);
 		for dir in p.directions(){
 			let to_y = y as i8 + dir.1;
 			if dir.0 == 0 {
@@ -498,20 +502,20 @@ impl Board{
 					if to_y == 0 {
 						let qw = Piece::new('Q');
 						let nw = Piece::new('N');
-						ret.push(Move::new(x, y, x, to_y as usize, qw, qw.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
-						ret.push(Move::new(x, y, x, to_y as usize, nw, nw.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
+						ret.push(Move::new(x, y, x, to_y as usize, qw, qw.unwrap().combined_value_at(&to_pos, b) - p.combined_value_at(&from_pos, b)));
+						ret.push(Move::new(x, y, x, to_y as usize, nw, nw.unwrap().combined_value_at(&to_pos, b) - p.combined_value_at(&from_pos, b)));
 					} else if to_y == 7 {
 						let qb = Piece::new('q');
 						let nb = Piece::new('n');
-						ret.push(Move::new(x, y, x, to_y as usize, qb, qb.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
-						ret.push(Move::new(x, y, x, to_y as usize, nb, nb.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos)));
+						ret.push(Move::new(x, y, x, to_y as usize, qb, qb.unwrap().combined_value_at(&to_pos, b) - p.combined_value_at(&from_pos, b)));
+						ret.push(Move::new(x, y, x, to_y as usize, nb, nb.unwrap().combined_value_at(&to_pos, b) - p.combined_value_at(&from_pos, b)));
 					}
-					else { ret.push(Move::new(x, y, x, to_y as usize, None, p.value_at(&to_pos) - from_value)); }
+					else { ret.push(Move::new(x, y, x, to_y as usize, None, p.value_at(&to_pos, b) - from_value)); }
 
 					if y == 6 && self.color_to_move == White && self.get_reference_at(x, (to_y-1) as usize) == &None{
-						ret.push(Move::new(x, y, x, (to_y - 1) as usize, None, p.value_at(&Position{x, y: (to_y - 1) as usize}) - from_value));
+						ret.push(Move::new(x, y, x, (to_y - 1) as usize, None, p.value_at(&Position{x, y: (to_y - 1) as usize}, b) - from_value));
 					} else if y == 1 && self.color_to_move == Black && self.get_reference_at(x, (to_y+1) as usize) == &None{
-						ret.push(Move::new(x, y, x, (to_y + 1) as usize, None, p.value_at(&Position{x, y: (to_y + 1) as usize}) - from_value));
+						ret.push(Move::new(x, y, x, (to_y + 1) as usize, None, p.value_at(&Position{x, y: (to_y + 1) as usize}, b) - from_value));
 					}
 				}
 			}
@@ -524,22 +528,22 @@ impl Board{
 							if to_y == 0 {
 								let qw = Piece::new('Q');
 								let nw = Piece::new('N');
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, qw, qw.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, nw, nw.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, qw, qw.unwrap().combined_value_at(&to_pos, b) - p.combined_value_at(&from_pos, b) - t.combined_value_at(&to_pos, b)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, nw, nw.unwrap().combined_value_at(&to_pos, b) - p.combined_value_at(&from_pos, b) - t.combined_value_at(&to_pos, b)));
 							} else if to_y == 7{
 								let qb = Piece::new('q');
 								let nb = Piece::new('n');
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, qb, qb.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, nb, nb.unwrap().combined_value_at(&to_pos) - p.combined_value_at(&from_pos) - t.combined_value_at(&to_pos)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, qb, qb.unwrap().combined_value_at(&to_pos, b) - p.combined_value_at(&from_pos, b) - t.combined_value_at(&to_pos, b)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, nb, nb.unwrap().combined_value_at(&to_pos, b) - p.combined_value_at(&from_pos, b) - t.combined_value_at(&to_pos, b)));
 							}
 							else{
-								ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value - t.combined_value_at(&to_pos)));
+								ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos, b) - from_value - t.combined_value_at(&to_pos, b)));
 							}
 						}
 					} else if let Some(c) = self.passants[self.counter]{
 						if c == to_x && (self.color_to_move == White && y == 3 || self.color_to_move == Black && y == 4){
 							let passant_pos = Position{x: c as usize, y};
-							ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos) - from_value - self.get_reference_at(passant_pos.x, passant_pos.y).unwrap().combined_value_at(&passant_pos))); //TODO
+							ret.push(Move::new(x, y, to_x as usize, to_y as usize, None, p.value_at(&to_pos, b) - from_value - self.get_reference_at(passant_pos.x, passant_pos.y).unwrap().combined_value_at(&passant_pos, b)));
 						}
 					}
 				}

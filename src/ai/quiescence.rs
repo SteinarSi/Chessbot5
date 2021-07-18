@@ -143,7 +143,7 @@ impl Quiescence{
 			}
 		}
 		if let Some(mut m) = self.killerray.get(b.counter()){
-			if b.is_legal(&m){
+			if b.is_legal(&m) && Some(m) != prev{
 				m.set_heuristic_value(b.value_of(&m));
 				kill = Some(m);
 				b.move_piece(&m);
@@ -228,7 +228,7 @@ impl Quiescence{
 		}
 
 		if let Some(mut m) = self.killerray.get(b.counter()){
-			if b.is_legal(&m){
+			if b.is_legal(&m) && Some(m) != prev{
 				m.set_heuristic_value(b.value_of(&m));
 				kill = Some(m);
 				b.move_piece(&m);

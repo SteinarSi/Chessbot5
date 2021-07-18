@@ -57,6 +57,7 @@ impl Quiescence{
 		if stand_pat >= beta { return stand_pat; }
 
 		let ms = b.moves();
+		if ms.len() == 0 { return b.end_score(); }
 
 		let mut arr = [[None; 8]; 8];
 		let filt = |m: &Move| {
@@ -83,6 +84,7 @@ impl Quiescence{
 		if stand_pat <= alpha { return stand_pat; }
 
 		let ms = b.moves();
+		if ms.len() == 0 { return b.end_score(); }
 
 		let mut arr = [[None; 8]; 8];
 		let filt = |m: &Move| {

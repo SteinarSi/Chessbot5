@@ -7,16 +7,17 @@ mod backend;
 mod ai;
 
 use crate::backend::{board::*, movement::*};
-use crate::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::AlphaBeta, memoalpha::MemoAlpha, alphakiller::AlphaKiller, quiescence::Quiescence};
+use crate::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::AlphaBeta, 
+            memoalpha::MemoAlpha, alphakiller::AlphaKiller, quiescence::Quiescence,
+            pvs::PVS};
 use std::io;
 
 fn main(){
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
-    simulate(&mut Quiescence::new(), 8);
-    //play_against(&mut Quiescence::new(), 8, White);
-    //compare_moves();
+    //simulate(&mut Quiescence::new(), 8);
+    //play_against(&mut PVS::new(), 8, White);
     //vs(&mut Quiescence::new(), 8, &mut AlphaKiller::new(), 8);
-    //compare(&mut [("AlphaBeta", &mut AlphaBeta::new()), ("AlphaKiller", &mut AlphaKiller::new()), ("Quiescence", &mut Quiescence::new())], 6, 7);
+    compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
 }
 
 fn play_against(bot: &mut AI, depth: usize, c: Color){

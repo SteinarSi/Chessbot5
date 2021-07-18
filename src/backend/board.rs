@@ -1449,14 +1449,14 @@ R---K--R";
 	    let rw = Piece::new('R').unwrap();
 	    let kb = Piece::new('k').unwrap();
 	    let rb = Piece::new('r').unwrap();
-	    let ws = kw.value_at(&Position{x: 6, y: 7}) - kw.value_at(&Position{x: 4, y: 7}) 
-               + rw.value_at(&Position{x: 5, y: 7}) - rw.value_at(&Position{x: 7, y: 7});
-	    let wl = kw.value_at(&Position{x: 2, y: 7}) - kw.value_at(&Position{x: 4, y: 7})
-               + rw.value_at(&Position{x: 3, y: 7}) - rw.value_at(&Position{x: 0, y: 7});
-        let bs = kb.value_at(&Position{x: 6, y: 0}) - kb.value_at(&Position{x: 4, y: 0})
-    		   + rb.value_at(&Position{x: 5, y: 0}) - rb.value_at(&Position{x: 7, y: 0});
-		let bl = kb.value_at(&Position{x: 2, y: 0}) - kb.value_at(&Position{x: 4, y: 0})
-			   + rb.value_at(&Position{x: 3, y: 0}) - rb.value_at(&Position{x: 0, y: 0});
+	    let ws = kw.value_at(&Position{x: 6, y: 7}, true) - kw.value_at(&Position{x: 4, y: 7}, true) 
+               + rw.value_at(&Position{x: 5, y: 7}, true) - rw.value_at(&Position{x: 7, y: 7}, true);
+	    let wl = kw.value_at(&Position{x: 2, y: 7}, true) - kw.value_at(&Position{x: 4, y: 7}, true)
+               + rw.value_at(&Position{x: 3, y: 7}, true) - rw.value_at(&Position{x: 0, y: 7}, true);
+        let bs = kb.value_at(&Position{x: 6, y: 0}, true) - kb.value_at(&Position{x: 4, y: 0}, true)
+    		   + rb.value_at(&Position{x: 5, y: 0}, true) - rb.value_at(&Position{x: 7, y: 0}, true);
+		let bl = kb.value_at(&Position{x: 2, y: 0}, true) - kb.value_at(&Position{x: 4, y: 0}, true)
+			   + rb.value_at(&Position{x: 3, y: 0}, true) - rb.value_at(&Position{x: 0, y: 0}, true);
 	    panic!("White short: {}\nWhite long: {}\nBlack short: {}\nBlack long: {}", ws, wl, bs, bl);
 	}
 

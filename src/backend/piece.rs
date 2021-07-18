@@ -321,16 +321,16 @@ mod piece_value_tests{
 		let kw = Piece::new('K').unwrap();
 		let kb = Piece::new('k').unwrap();
 
-		assert_eq!(0, kw.combined_value_at(&Position{x: 4, y: 7}) + kb.combined_value_at(&Position{x: 4, y: 0}));
+		assert_eq!(0, kw.combined_value_at(&Position{x: 4, y: 7}, true) + kb.combined_value_at(&Position{x: 4, y: 0}, true));
 
 		let qw = Piece::new('Q').unwrap();
 		let qb = Piece::new('q').unwrap();
 
-		assert_eq!(0, qw.combined_value_at(&Position{x: 6, y: 3}) + qb.combined_value_at(&Position{x: 6, y: 4}));
+		assert_eq!(0, qw.combined_value_at(&Position{x: 6, y: 3}, true) + qb.combined_value_at(&Position{x: 6, y: 4}, true));
 
 		let pw = Piece::new('P').unwrap();
 		let pb = Piece::new('p').unwrap();
 
-		assert_eq!(0, pw.combined_value_at(&Position{x: 2, y: 1}) + pb.combined_value_at(&Position{x: 2, y: 6}));
+		assert_eq!(0, pw.combined_value_at(&Position{x: 2, y: 1}, true) + pb.combined_value_at(&Position{x: 2, y: 6}, true));
 	}
 }

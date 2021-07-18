@@ -3,6 +3,9 @@ use super::interface::AI;
 
 const INITIAL_DEPTH: usize = 6;
 
+
+// MiniMax med alfa-beta-pruning.
+// Denne bruker ikke memoisering.
 pub struct AlphaBeta{
 	depth: usize
 }

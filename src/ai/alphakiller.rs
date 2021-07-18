@@ -4,6 +4,9 @@ use super::interface::AI;
 
 const INITIAL_DEPTH: usize = 8;
 
+
+// Alfa-beta-pruning, memoisering, i tillegg til å lagre alle trekk som forårsaker beta-cutoffs i en array.
+// De trekkene kalles 'Killer Moves', og enhver posisjon vil først evaluere dybdens Killer Move om det er lovlig før de andre trekkene.
 pub struct AlphaKiller{
 	memo: MemoMap,
 	depth: usize,

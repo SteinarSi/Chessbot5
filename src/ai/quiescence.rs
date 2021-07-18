@@ -4,6 +4,9 @@ use super::interface::AI;
 
 const INITIAL_DEPTH: usize = 8;
 
+// Alfa-beta-pruning, memoisering, killer heurestic, samt et quiescence search når depth=1.
+// 'Quiesce' betyr 'stille' på fransk, og betyr i vår kontekst å kun evaluere 'rolige' trekk.
+// Vi definerer et 'rolig' trekk som et trekk som flytter til en rute som ikke blir truet av motstanderen.
 pub struct Quiescence{
 	memo: MemoMap,
 	depth: usize,
@@ -53,12 +56,15 @@ impl Quiescence{
 	}
 
 	fn quimax(&mut self, b: &mut Board, beta: Score) -> Score{
+		//Om den nåværende scoren allerede er uakseptabel for svart kan vi anta at hvits neste trekk gjør den enda mer uakseptabel.
+		//Da er det ikke vits i å sjekke engang. Dette antar altså et hvit ikke er i zugswang.
 		let stand_pat = b.heuristic_value();
-		if stand_pat >= beta { return stand_pat; }
+		if stand_pat >= beta { return stand_pat; } 
 
 		let ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
+		//Filtrerer trekk, vi vil kun ha trekk som flytter til en rute som ikke er truet.
 		let mut arr = [[None; 8]; 8];
 		let filt = |m: &Move| {
 			if let Some(bo) = arr[m.to.y][m.to.x]{
@@ -114,8 +120,10 @@ impl Quiescence{
 		let mut prev = None;
 		let mut kill = None;
 
+		//Sjekker om vi allerede har et relevant oppslag i hashmappet vårt.
 		if let Some(t) = self.memo.get(&b.hash()){
 			if t.depth >= depth{
+				//Hvis dybden på oppslaget er nok, kan vi bruke verdiene umiddelbart.
 				match &t.flag{
 					TransFlag::EXACT       => { return t.value; }
 					TransFlag::LOWER_BOUND => { alpha = alpha.max(t.value); }
@@ -123,6 +131,8 @@ impl Quiescence{
 				}
 				if alpha >= beta { return t.value; }
 			}
+			//Hvis ikke kan vi ikke bruke verdiene.
+			//Da sjekker vi istedet om oppslaget har lagret et bra trekk, og evaluerer i så fall det trekket først.
 			else if let Some(m) = t.best{
 				if b.is_legal(&m) { 
 					prev = t.best;
@@ -130,12 +140,14 @@ impl Quiescence{
 					let value = self.minimize_beta(b, alpha, beta, depth-1);
 					b.go_back();
 
+					//Beta-cutoff, stillingen er uakseptabel for svart.
 					if value >= beta{
 						self.killerray.put(m.clone(), b.counter());
 						self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 						return value;
 					}
 
+					//Trekket forbedret alfa, dette er dermed en PV-node.
 					if value > alpha{
 						best = Some(m);
 						exact = true;
@@ -144,6 +156,9 @@ impl Quiescence{
 				}
 			}
 		}
+
+		//Sjekker om vi har et 'Killer Move' for denne dybden.
+		//Da evaluerer vi det trekker først.
 		if let Some(mut m) = self.killerray.get(b.counter()){
 			if b.is_legal(&m) && Some(m) != prev{
 				m.set_heuristic_value(b.value_of(&m));
@@ -152,11 +167,13 @@ impl Quiescence{
 				let value = self.minimize_beta(b, alpha, beta, depth-1);
 				b.go_back();
 
+				//Beta-cutoff, stillingen er uakseptabel for svart.
 				if value >= beta{
 					self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 					return value;
 				}
 
+				//Trekket forbedret alfa.
 				if value > alpha{
 					best = Some(m);
 					exact = true;
@@ -165,6 +182,8 @@ impl Quiescence{
 			}
 		}
 
+		// Først her, når vi allerede har vurdert eventuelle 'Killer'-trekk og memoiserte trekk,
+		// begynner vi å generere listen av alle trekk og evaluerer dem.
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 
@@ -175,6 +194,7 @@ impl Quiescence{
 			let value = self.minimize_beta(b, alpha, beta, depth-1);
 			b.go_back();
 
+			//Beta-cutoff
 			if value >= beta{
 				self.killerray.put(m.clone(), b.counter());
 				self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));

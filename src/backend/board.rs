@@ -165,6 +165,10 @@ impl Board{
 		ret
 	}
 
+	// Tar imot en streng på formen 'e2e4', prøver å evaluere det som et trekk og gjøre det.
+	// Om strengen ikke er på gyldig format skjer ingenting.
+	// Om strenger er gyldig, men trekket er ikke det, skjer det heller ingenting.
+	// Om trekket er gyldig blir det utført.
 	pub fn move_str(&mut self, s: &str) -> Option<()>{
 		let m1 = Move::from_str(s)?;
 		let m2 = self.moves().into_iter().find(|m2| *m2 == m1)?;
@@ -172,6 +176,7 @@ impl Board{
 		Some(())
 	}
 
+	//En noenlunde effektiv funskjon for å sjekke om et trekk er lovlig eller ei.
 	pub fn is_legal(&mut self, m: &Move) -> bool{
 		self.legal_helper(m) && self.is_not_check_if(m)
 	}
@@ -305,6 +310,8 @@ impl Board{
 		ret
 	}
 
+	//Sjekker om en rute er truet av den spilleren som IKKE skal flytte akkurat nå.
+	//Denne bør altså kalles blant annet for å sjekke om det er trygt å flytte et sted uten å faktisk flytte brikken og se.
 	pub fn is_threatened(&self, pos: &Position) -> bool{
 		self.is_threatened_by(pos, self.color_to_move.opposite())
 	}

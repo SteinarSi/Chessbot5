@@ -1,6 +1,8 @@
 use crate::backend::{movement, board};
 use super::interface::AI;
 
+
+// En ren minimax-algoritme. 
 pub struct MiniMax{
 	depth: usize
 }

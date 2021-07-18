@@ -4,6 +4,10 @@ use super::interface::AI;
 
 const INITIAL_DEPTH: usize = 8;
 
+
+// Alfa-beta-pruning, med memoisering.
+// Har den sett og evaluert en posisjon før vil den sammenligne den med alfa og beta.
+// Hvis posisjonen må evalueres lengre ser den om den har et lagret beste trekk, og evaluerer det først.
 pub struct MemoAlpha{
 	memo: MemoMap,
 	depth: usize

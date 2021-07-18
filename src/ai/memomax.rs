@@ -5,6 +5,8 @@ use std::collections::HashMap;
 
 const INITIAL_DEPTH: usize = 5;
 
+// MiniMax, men med memoisering.
+// Har den sett og evaluert en posisjon før, bruker den det resultatet.
 pub struct MemoMax{
 	memo: HashMap<i64, Memory>,
 	depth: usize

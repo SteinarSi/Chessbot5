@@ -14,10 +14,10 @@ use std::io;
 
 fn main(){
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
-    //simulate(&mut Quiescence::new(), 8);
-    //play_against(&mut PVS::new(), 8, White);
+    //simulate(&mut PVS::new(), 8);
+    play_against(&mut PVS::new(), 8, White);
     //vs(&mut Quiescence::new(), 8, &mut AlphaKiller::new(), 8);
-    compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
+    //compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
 }
 
 fn play_against(bot: &mut AI, depth: usize, c: Color){
@@ -116,8 +116,7 @@ fn compare(l: &mut [(&str, &mut AI)], n: i8, depth: usize){
 
 fn solve_position(s: &str, c: Color) -> Moves{
     let b = Board::custom(s, c);
-    let mut killer = Quiescence::new();
-    killer.set_depth(10);
-    killer.principal_variation(b)
-
+    let mut quiesce = Quiescence::new();
+    quiesce.set_depth(8);
+    quiesce.principal_variation(b)
 }

@@ -72,7 +72,7 @@ impl MemoAlpha{
 			}
 			else if let Some(m) = t.best{
 				prev = t.best;
-				b.move_piece(&m); //TODO: en sjekk for om trekket er lovlig eller ei
+				b.move_piece(&m);
 				let value = self.minimize_beta(b, alpha, beta, depth-1);
 				b.go_back();
 

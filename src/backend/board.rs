@@ -272,7 +272,7 @@ impl Board{
 		}
 
 		if let Some(ps) = self.passants[self.counter]{
-			if m.to.x == ps as usize {
+			if p.piecetype == PieceType::Pawn && m.to.x == ps as usize {
 				if m.to.y == 2 && self.color_to_move == White {
 					let pos = Position{x: m.to.x, y: 3};
 					ret -= self.get_reference_at(m.to.x, 3).unwrap().combined_value_at(&pos, b);
@@ -943,10 +943,8 @@ mod score_test{
 			if ms.len() == 0 { break; }
 			let first = ms[0].clone();
 			for m in ms{
-				print!("{}: {} ", m.to_string(), m.heuristic_value());
-				assert_eq!(m.heuristic_value(), board.value_of(&m), "\n{}{}", board.to_string(), m.to_string());
+				assert_eq!(m.heuristic_value(), board.value_of(&m), "\n{}{}\nPrevious moves: {:?}", board.to_string(), m.to_string(), board.moves);
 			}
-			println!("\n");
 			board.move_piece(&first);
 		}
 	}
@@ -997,6 +995,20 @@ RNBQKBNR";
 
 		b.go_back();
 		assert_eq!(2, b.queens[b.counter]);
+	}
+
+	#[test]
+	fn ba6(){
+		let mut b = Board::new();
+		b.move_str("e2e3");
+		b.move_str("b7b6");
+		b.move_str("f2f4");
+		b.move_str("h7h6");
+		b.move_str("f1e2");
+		b.move_str("a7a5");
+		let mut m = Move::from_str("e2a6").unwrap();
+		m.set_heuristic_value(b.value_of(&m));
+		assert!(b.moves().contains(&m));
 	}
 }
 

@@ -33,7 +33,7 @@ pub enum TransFlag{
 
 impl MemoMap{
 	pub fn new() -> Self{
-		MemoMap{map: HashMap::with_capacity(7_500_000), delete: 0}
+		MemoMap{map: HashMap::with_capacity(2_000_000), delete: 0}
 	}
 
 	pub fn get(&self, k: &Key) -> Option<&Transposition>{

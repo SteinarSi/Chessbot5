@@ -2,13 +2,14 @@ use std::collections::HashMap;
 
 pub type Key = i64;
 
-pub struct Key_Count{
+#[derive(Clone)]
+pub struct RepetitionCounter{
 	map: HashMap<Key, u8>
 }
 
-impl Key_Count{
+impl RepetitionCounter{
 	pub fn new() -> Self{
-		Key_Count{map: HashMap::with_capacity(200)}
+		RepetitionCounter{map: HashMap::with_capacity(200)}
 	}
 
 	pub fn inc(&mut self, k: Key){
@@ -19,8 +20,17 @@ impl Key_Count{
 		*self.map.get_mut(&k).expect("Expected key entry, but none where found.") -= 1;
 	}
 
-	pub fn count(&mut self, k: Key) -> u8{
+	pub fn count(&self, k: Key) -> u8{
 		*self.map.get(&k).expect("Expected key entry, but none where found.")
+	}
+}
+
+//Bryr meg faktisk fint lite om denne er 'korrekt' eller ikke.
+//Vi trenger den kun for å vite om Board1==Board2, 
+//og da har vi mange andre felt det er mer passende å sjekke for likhet.
+impl PartialEq for RepetitionCounter{
+	fn eq(&self, _other: &RepetitionCounter) -> bool{
+		true
 	}
 }
 
@@ -30,14 +40,14 @@ mod key_count_tests{
 
 	#[test]
 	fn can_inc(){
-		let mut count = Key_Count::new();	
+		let mut count = RepetitionCounter::new();	
 		count.inc(42);
 		assert_eq!(1, count.count(42));
 	}
 
 	#[test]
 	fn can_dec(){
-		let mut count = Key_Count::new();
+		let mut count = RepetitionCounter::new();
 		count.inc(42);
 		count.inc(42);
 		count.inc(42);
@@ -49,6 +59,6 @@ mod key_count_tests{
 	#[should_panic]
 	#[test]
 	fn cannot_get_unknown_key(){
-		Key_Count::new().count(42);
+		RepetitionCounter::new().count(42);
 	}
 }

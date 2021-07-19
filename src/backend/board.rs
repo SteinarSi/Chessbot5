@@ -1,6 +1,7 @@
 pub use super::piece::{Piece, PieceType, Color, Color::White, Color::Black};
 pub use super::movement::{Move, Score, Moves};
 use super::zobrist::Zobrist;
+use super::repetition_counter::RepetitionCounter;
 use super::movement::{Position, INFINITY};
 use std::fmt;
 use std::cmp::Ordering;
@@ -31,7 +32,8 @@ pub struct Board{
 	bkingpos: Vec<Position>,
 	hashes: Vec<i64>,
 	zobrist: Zobrist,
-	queens: Vec<u8>
+	queens: Vec<u8>,
+	repetitions: RepetitionCounter
 
 	//TODO blir mange flere felt her etter hvert.
 }
@@ -83,9 +85,10 @@ impl Board{
 		}
 		self.queens.push(queens);
 		self.zobrist.swap_sides();
-		self.hashes.push(self.zobrist.hash());
-		self.scores.push(self.scores[self.counter] + m.heuristic_value());
 		self.update_castle(m);
+		self.hashes.push(self.zobrist.hash());
+		self.repetitions.inc(self.zobrist.hash());
+		self.scores.push(self.scores[self.counter] + m.heuristic_value());
 		self.passants.push(passant);
 		self.moves.push(*m);
 		self.counter += 1;
@@ -94,6 +97,7 @@ impl Board{
 
 	pub fn go_back(&mut self){
 		let m = self.moves.pop().expect("Cannot go further back!");
+		self.repetitions.dec(self.zobrist.hash());
 		self.queens.pop();
 		self.hashes.pop();
 		self.scores.pop();
@@ -132,11 +136,7 @@ impl Board{
 	//Genererer en liste av lovlige trekk.
 	pub fn moves(&mut self) -> Moves{
 		let mut ret = Moves::new();
-
-		//let hash = self.hashes[self.counter];
-		//if self.hashes.iter().fold(0, |acc, x| if x == &hash { acc+1 } else { acc }) >= 3{
-		//	return ret; //Draw by repetition
-		//}
+        if self.is_draw_by_repetition() { return ret; }
 
 		let color = self.color_to_move;
 
@@ -224,7 +224,12 @@ impl Board{
 		self.moves().len() == 0
 	}
 
+    pub fn is_draw_by_repetition(&self) -> bool{
+        self.repetitions.count(self.zobrist.hash()) >= 3
+    }
+
 	pub fn winner(&self) -> Option<Color>{
+        if self.is_draw_by_repetition() { return None; }
 		match self.end_score().cmp(&0){
 			Ordering::Less => Some(Black),
             Ordering::Greater => Some(White),
@@ -234,6 +239,7 @@ impl Board{
 
 	//NB!!!! Denne må kun kalles i botsøket, etter at moves.len() == 0.
 	pub fn end_score(&self) -> Score{
+        if self.is_draw_by_repetition() { return 0; }
 		if self.color_to_move == White{
 			if self.is_threatened_by(&self.wkingpos[self.counter], Black){
 				- INFINITY + self.counter as Score //Sjakk matt, svart vant
@@ -697,10 +703,12 @@ impl Board{
 			}
 		}
 		let zobrist = Zobrist::new(&grid, c);
+		let mut rep = RepetitionCounter::new();
+		rep.inc(zobrist.hash());
 		Board{grid, color_to_move: c, counter: 0, graveyard: Vec::new(), 
 			moves: Moves::new(), passants: vec![None], castles: vec![Board::build_castle(&grid)],
 			scores: vec![0], wkingpos: vec![Position{x: wk.0, y: wk.1}], bkingpos: vec![Position{x: bk.0, y: bk.1}],
-		 	hashes: vec![zobrist.hash()], zobrist, queens: vec![queens]}
+		 	hashes: vec![zobrist.hash()], zobrist, queens: vec![queens], repetitions: rep}
 	}
 }
 
@@ -1430,7 +1438,7 @@ R---K--R";
 		assert_eq!(board.get_reference_at(2, 0), &Piece::new('k'));
 		println!("3\n{}", board.to_string());
 		board.go_back();
-		println!("3.5");
+		println!("3.5\n{}", board.to_string());
 		board.go_back();
 		println!("4\n{}", board.to_string());
 		assert_eq!(board.get_reference_at(4, 7), &Piece::new('K'));
@@ -1746,6 +1754,21 @@ RNBQKBNR";
 
 		assert_ne!(french, petrov);
 		assert_eq!(french.hash(), petrov.hash());
-
 	}
+
+    #[test]
+    fn draw_by_repetition(){
+        let mut b = Board::new();
+
+        for s in &["b1c3", "g8f6", "c3b1", "f6g8", "b1c3", "g8f6", "c3b1"]{
+            b.move_str(s);
+            assert!( ! b.is_draw_by_repetition());
+        }
+
+        b.move_str("f6g8");
+        assert!(b.is_draw_by_repetition());
+
+        b.go_back();
+        assert!( ! b.is_draw_by_repetition());
+    }
 }

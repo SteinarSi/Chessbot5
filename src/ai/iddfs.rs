@@ -4,8 +4,8 @@ use super::interface::AI;
 
 use std::time::{Duration, Instant};
 
-const INITIAL_DEPTH: usize = 8;
-const INITIAL_TIME: Duration = Duration::from_secs(6);
+const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
+const INITIAL_TIME: Duration = Duration::from_secs(10);
 
 pub struct IDDFS{
 	memo: MemoMap,
@@ -25,12 +25,17 @@ impl AI for IDDFS{
 
 	fn search(&mut self, mut b: Board) -> Move{
 		let time = Instant::now();
-		if b.color_to_move() == White{
-			self.maximize_alpha(&mut b, - INFINITY, INFINITY, self.depth, &time, true);
+		let mut d = 2;
+		while time.elapsed() < self.time && d < self.depth {
+			if b.color_to_move() == White{
+				self.maximize_alpha(&mut b, - INFINITY, INFINITY, d, &time, true);
+			}
+			else{
+				self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time, true);
+			}
+			d += 1;
 		}
-		else{
-			self.minimize_beta(&mut b, - INFINITY, INFINITY, self.depth, &time, true);
-		}
+		println!("Depth reached: {}", d-1);
 		self.memo.clean();
 		self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}
@@ -215,6 +220,7 @@ impl IDDFS{
 		}
 
 		for m in iter{
+			if check && time.elapsed() >= self.time { return alpha; } 
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
 			let mut value = self.minimize_beta(b, alpha, alpha+1, depth-1, time, false); //Null window
@@ -323,6 +329,7 @@ impl IDDFS{
 		}
 
 		for m in iter{
+			if check && time.elapsed() >= self.time { return beta; }
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
 			let mut value = self.maximize_alpha(b, beta-1, beta, depth-1, time, false);

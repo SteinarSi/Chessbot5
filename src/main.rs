@@ -15,7 +15,7 @@ use std::io;
 fn main(){
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
     //simulate(&mut PVS::new(), 8);
-    play_against(&mut IDDFS::new(), 12, White);
+    play_against(&mut IDDFS::new(), 99, White);
     //vs(&mut Quiescence::new(), 8, &mut MemoMax::new(), 4);
     //compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
 }
@@ -116,7 +116,8 @@ fn compare(l: &mut [(&str, &mut AI)], n: i8, depth: usize){
 
 fn solve_position(s: &str, c: Color) -> Moves{
     let b = Board::custom(s, c);
-    let mut quiesce = Quiescence::new();
-    quiesce.set_depth(8);
-    quiesce.principal_variation(b)
+    let mut iddfs = IDDFS::new();
+    iddfs.set_depth(20);
+    iddfs.set_time(20);
+    iddfs.principal_variation(b)
 }

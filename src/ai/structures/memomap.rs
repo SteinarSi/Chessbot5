@@ -36,8 +36,11 @@ impl MemoMap{
 		MemoMap{map: HashMap::with_capacity(2_000_000), delete: 0}
 	}
 
-	pub fn get(&self, k: &Key) -> Option<&Transposition>{
-		self.map.get(k)
+	pub fn get(&mut self, k: &Key) -> Option<&Transposition>{
+		match self.map.get_mut(k){
+			None => None,
+			Some(t) => { t.age = (self.delete + ADD) % LIFETIME; Some(t) }
+		}
 	}
 
 	pub fn insert(&mut self, k: Key, value: Score, flag: TransFlag, depth: usize, best: Option<Move>){

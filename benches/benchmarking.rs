@@ -7,7 +7,7 @@ use chessbot5::ai::{interface::AI, quiescence::Quiescence, minimax::MiniMax,
 fn bench_ai(bot: &mut AI, depth: usize){
     let mut b = Board::new();
     bot.set_depth(depth);
-    for _ in 0..4{
+    for _ in 0..5{
         let m = bot.search(b.clone());
         b.move_piece(&m);
     }
@@ -24,9 +24,9 @@ fn bench_ais(c: &mut Criterion) {
     //group.bench_function("AlphaBeta: d=7", |b| b.iter(|| bench_ai(&mut AlphaBeta::new(), black_box(7))));
     //group.bench_function("MemoAlpha: d=7", |b| b.iter(|| bench_ai(&mut MemoAlpha::new(), black_box(7))));
     //group.bench_function("AlphaKiller: d=7", |b| b.iter(|| bench_ai(&mut AlphaKiller::new(), black_box(7))));
-    //group.bench_function("Quiescence: d=8", |b| b.iter(|| bench_ai(&mut Quiescence::new(), black_box(8))));
-    group.bench_function("PVS: d=8", |b| b.iter(|| bench_ai(&mut PVS::new(), black_box(8))));
-    group.bench_function("IDDFS: d=8", |b| b.iter(|| bench_ai(&mut PVS::new(), black_box(8))));
+    group.bench_function("Quiescence: d=9", |b| b.iter(|| bench_ai(&mut Quiescence::new(), black_box(9))));
+    group.bench_function("PVS: d=9", |b| b.iter(|| bench_ai(&mut PVS::new(), black_box(9))));
+    group.bench_function("IDDFS: d=9", |b| b.iter(|| bench_ai(&mut IDDFS::new(), black_box(9))));
 
     group.finish();
 }

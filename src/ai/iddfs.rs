@@ -26,7 +26,7 @@ impl AI for IDDFS{
 	fn search(&mut self, mut b: Board) -> Move{
 		let time = Instant::now();
 		let mut d = 2;
-		while time.elapsed() < self.time && d < self.depth {
+		while time.elapsed() < self.time && d <= self.depth {
 			if b.color_to_move() == White{
 				self.maximize_alpha(&mut b, - INFINITY, INFINITY, d, &time, true);
 			}
@@ -37,7 +37,7 @@ impl AI for IDDFS{
 		}
 		println!("Depth reached: {}", d-1);
 		self.memo.clean();
-		self.memo.get(&b.hash()).unwrap().best.unwrap()
+        self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}
 }
 

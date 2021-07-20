@@ -14,8 +14,8 @@ use std::io;
 
 fn main(){
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
-    //simulate(&mut PVS::new(), 8);
-    play_against(&mut IDDFS::new(), 99, White);
+    simulate(&mut IDDFS::new(), 99);
+    //play_against(&mut IDDFS::new(), 99, White);
     //vs(&mut Quiescence::new(), 8, &mut MemoMax::new(), 4);
     //compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
 }

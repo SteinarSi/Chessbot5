@@ -10,7 +10,9 @@ const ADD: u8 = LIFETIME - 1;
 //Mellom hvert botsøk må vi kalle .clean() for å fjerne utdaterte oppslag.
 pub struct MemoMap{
 	map: HashMap<Key, Transposition>,
-	delete: u8
+	//delete: u8
+
+	delete: bool
 }
 
 //Holder styr på informasjon vi har lyst til å lagre for hver tidligere evaluerte posisjon.
@@ -20,7 +22,8 @@ pub struct Transposition{
 	pub flag: TransFlag,
 	pub depth: usize,
 	pub best: Option<Move>,
-	age: u8
+	//age: u8
+	age: bool
 }
 
 // 🏳️‍⚧️
@@ -33,25 +36,29 @@ pub enum TransFlag{
 
 impl MemoMap{
 	pub fn new() -> Self{
-		MemoMap{map: HashMap::with_capacity(2_000_000), delete: 0}
+		//MemoMap{map: HashMap::with_capacity(2_000_000), delete: 0}
+		MemoMap{map: HashMap::with_capacity(2_000_000), delete: true}
 	}
 
 	pub fn get(&mut self, k: &Key) -> Option<&Transposition>{
 		match self.map.get_mut(k){
 			None => None,
-			Some(t) => { t.age = (self.delete + ADD) % LIFETIME; Some(t) }
+			//Some(t) => { t.age = (self.delete + ADD) % LIFETIME; Some(t) }
+			Some(t) => { t.age = ! self.delete; Some(t) }
 		}
 	}
 
 	pub fn insert(&mut self, k: Key, value: Score, flag: TransFlag, depth: usize, best: Option<Move>){
-		self.map.insert(k, Transposition{value, flag, depth, best, age: (self.delete + ADD) % LIFETIME});
+		//self.map.insert(k, Transposition{value, flag, depth, best, age: (self.delete + ADD) % LIFETIME});
+		self.map.insert(k, Transposition{value, flag, depth, best, age: ! self.delete});
 	}
 
 	pub fn clean(&mut self) -> usize{
-		self.delete = (self.delete + 1) % LIFETIME;
+		//self.delete = (self.delete + 1) % LIFETIME;
 		let before = self.map.len();
 		let delete = self.delete;
 		self.map.retain(|_, v| (*v).age != delete);
+		self.delete = ! self.delete;
 
 		before - self.map.len()
 	}
@@ -71,7 +78,7 @@ mod map_tests{
 
 		memo.insert(13, 0, TransFlag::EXACT, 0, None);
 
-		assert_eq!(Some(&Transposition{value: 0, flag: TransFlag::EXACT, depth: 0, best: None, age: 2}), memo.get(&13));
+		assert_eq!(Some(&Transposition{value: 0, flag: TransFlag::EXACT, depth: 0, best: None, age: false}), memo.get(&13));
 	}
 
 	#[test]
@@ -79,12 +86,22 @@ mod map_tests{
 		let mut memo = MemoMap::new();
 
 		memo.insert(13, 0, TransFlag::EXACT, 0, None);
-		assert_eq!(Some(&Transposition{value: 0, flag: TransFlag::EXACT, depth: 0, best: None, age: 2}), memo.get(&13));
-			
-		assert_eq!(0, memo.clean());
-		assert_eq!(Some(&Transposition{value: 0, flag: TransFlag::EXACT, depth: 0, best: None, age: 2}), memo.get(&13));
+		assert_eq!(Some(&Transposition{value: 0, flag: TransFlag::EXACT, depth: 0, best: None, age: false}), memo.get(&13));
 
-		assert_eq!(1, memo.clean());
+		memo.clean();
+		memo.clean();
 		assert_eq!(None, memo.get(&13));
+	}
+
+	#[test]
+	fn getting_resets_timer(){
+		let mut memo = MemoMap::new();
+
+		memo.insert(13, 0, TransFlag::EXACT, 0, None);
+
+		for _ in 0..10{
+			memo.clean();
+			assert!(memo.get(&13).is_some());
+		}
 	}
 }

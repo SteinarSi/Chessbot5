@@ -5,7 +5,7 @@ use super::interface::AI;
 use std::time::{Duration, Instant};
 
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
-const INITIAL_TIME: Duration = Duration::from_secs(100);
+const INITIAL_TIME: Duration = Duration::from_secs(5);
 
 pub struct IDDFS{
 	memo: MemoMap,
@@ -35,7 +35,7 @@ impl AI for IDDFS{
 			}
 			d += 1;
 		}
-		//println!("Depth reached: {}", d-1);
+		println!("Depth reached: {}", d-1);
 		self.memo.clean();
         self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}

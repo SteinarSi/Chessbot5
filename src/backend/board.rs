@@ -221,7 +221,14 @@ impl Board{
 	}
 
 	pub fn is_checkmate(&mut self) -> bool{
-		self.moves().len() == 0
+		if self.color_to_move == White{
+			let kpos = self.wkingpos[self.counter];
+			self.moves().len() == 0 && self.is_threatened_by(&kpos, Black)
+		}
+		else{
+			let kpos = self.bkingpos[self.counter];
+			self.moves.len() == 0 && self.is_threatened_by(&kpos, White)
+		}
 	}
 
     pub fn is_draw_by_repetition(&self) -> bool{

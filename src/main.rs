@@ -41,13 +41,21 @@ fn play_against(bot: &mut AI, depth: usize, c: Color){
             if board.is_checkmate(){
                 println!("You win!");
                 break;
+            }else if board.is_draw_by_repetition(){
+                println!("Draw!");
+                break;
             }
+
+
             println!("Thinking...");
             let m = bot.search(board.clone());
             board.move_piece(&m);
             println!("{}", board.to_string());
             if board.is_checkmate() {  
                 println!("Bot wins!");
+                break;
+            }else if board.is_draw_by_repetition(){
+                println!("Draw!");
                 break;
             }
         }
@@ -70,6 +78,9 @@ fn simulate(bot: &mut AI, depth: usize){
         if board.is_checkmate(){
             println!("{} wins!", board.color_to_move().opposite());
             break;
+        }else if board.is_draw_by_repetition(){
+            println!("Draw!");
+            break;
         }
     }
 }
@@ -86,6 +97,9 @@ fn vs(bot1: &mut AI, depth1: usize, bot2: &mut AI, depth2: usize){
         if board.is_checkmate(){
             println!("{} wins!", board.color_to_move().opposite());
             break;
+        }else if board.is_draw_by_repetition(){
+            println!("Draw!");
+            break;
         }
 
         let m = bot2.search(board.clone());
@@ -93,6 +107,9 @@ fn vs(bot1: &mut AI, depth1: usize, bot2: &mut AI, depth2: usize){
         println!("{}", board.to_string());
         if board.is_checkmate(){
             println!("{} wins!", board.color_to_move().opposite());
+            break;
+        }else if board.is_draw_by_repetition(){
+            println!("Draw!");
             break;
         }
     }

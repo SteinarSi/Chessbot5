@@ -47,7 +47,8 @@ impl AI for MiniMax{
 
 impl MiniMax{
 	fn maxi(&self, b: &mut board::Board, depth: usize) -> movement::Score{
-		if depth == 0 { b.heuristic_value() }
+		if b.is_draw_by_repetition() { 0 }
+		else if depth == 0 { b.heuristic_value() }
 		else{
 			let ms = b.moves();
 			if ms.len() == 0 { return b.end_score(); }
@@ -62,7 +63,8 @@ impl MiniMax{
 	}
 
 	fn mini(&self, b: &mut board::Board, depth: usize) -> movement::Score{
-		if depth == 0 { b.heuristic_value() }
+		if b.is_draw_by_repetition() { 0 }
+		else if depth == 0 { b.heuristic_value() }
 		else{
 			let ms = b.moves();
 			if ms.len() == 0 { return b.end_score(); }

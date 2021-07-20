@@ -113,6 +113,7 @@ impl Quiescence{
 	}
 
 	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
+		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 1 { return self.quimax(b, beta); }
 
 		let mut best = None;
@@ -212,6 +213,7 @@ impl Quiescence{
 	}
 
 	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
+		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 1 { return self.quimin(b, alpha); }
 
 		let mut exact = false;

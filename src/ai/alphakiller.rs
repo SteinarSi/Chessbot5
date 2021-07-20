@@ -55,6 +55,7 @@ impl AlphaKiller{
 
 	}
 	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
+		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 0 { return b.heuristic_value(); }
 
 		let mut best = None;
@@ -140,6 +141,7 @@ impl AlphaKiller{
 	}
 
 	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize) -> Score{
+		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 0 { return b.heuristic_value(); }
 
 		let mut exact = false;

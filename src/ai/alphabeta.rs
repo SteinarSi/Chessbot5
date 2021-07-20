@@ -57,6 +57,7 @@ impl AI for AlphaBeta{
 
 impl AlphaBeta{
 	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, beta: Score, depth: usize) -> Score{
+		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 0 { return b.heuristic_value(); }
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
@@ -77,6 +78,7 @@ impl AlphaBeta{
 	}
 
 	fn minimize_beta(&mut self,  b: &mut Board, alpha: Score, mut beta: Score, depth: usize) -> Score{
+		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 0 { return b.heuristic_value(); }
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }

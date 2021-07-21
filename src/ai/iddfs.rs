@@ -5,7 +5,7 @@ use super::interface::AI;
 use std::time::{Duration, Instant};
 
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
-const INITIAL_TIME: Duration = Duration::from_secs(5);
+const INITIAL_TIME: Duration = Duration::from_secs(10);
 
 pub struct IDDFS{
 	memo: MemoMap,
@@ -28,10 +28,10 @@ impl AI for IDDFS{
 		let mut d = 2;
 		while time.elapsed() < self.time && d <= self.depth {
 			if b.color_to_move() == White{
-				self.maximize_alpha(&mut b, - INFINITY, INFINITY, d, &time, true);
+				self.maximize_alpha(&mut b, - INFINITY, INFINITY, d, &time);
 			}
 			else{
-				self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time, true);
+				self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time);
 			}
 			d += 1;
 		}
@@ -123,10 +123,10 @@ impl IDDFS{
 
 	}
 
-	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant, check: bool) -> Score{
+	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
 		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 1 { return self.quimax(b, beta); }
-		if check && time.elapsed() >= self.time { return alpha; }
+		//if depth >= 6 && time.elapsed() >= self.time { return alpha; }
 		let mut best = None;
 		let mut exact = false;
 		let mut prev = None;
@@ -149,7 +149,7 @@ impl IDDFS{
 				if b.is_legal(&m) { 
 					prev = t.best;
 					b.move_piece(&m);
-					let value = self.minimize_beta(b, alpha, beta, depth-1, time, false);
+					let value = self.minimize_beta(b, alpha, beta, depth-1, time);
 					b.go_back();
 
 					//Beta-cutoff, stillingen er uakseptabel for svart.
@@ -176,7 +176,7 @@ impl IDDFS{
 				m.set_heuristic_value(b.value_of(&m));
 				kill = Some(m);
 				b.move_piece(&m);
-				let value = self.minimize_beta(b, alpha, beta, depth-1, time, false);
+				let value = self.minimize_beta(b, alpha, beta, depth-1, time);
 				b.go_back();
 
 				//Beta-cutoff, stillingen er uakseptabel for svart.
@@ -205,7 +205,7 @@ impl IDDFS{
 		if prev == None && kill == None{
 			let m = iter.next().unwrap();
 			b.move_piece(&m);
-			let value = self.minimize_beta(b, alpha, beta, depth-1, time, false);
+			let value = self.minimize_beta(b, alpha, beta, depth-1, time);
 			b.go_back();
 			if value > alpha{
 				if value >= beta{
@@ -220,12 +220,12 @@ impl IDDFS{
 		}
 
 		for m in iter{
-			if check && time.elapsed() >= self.time { return alpha; } 
+			if depth >= 6 && time.elapsed() >= self.time { return alpha; } 
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
-			let mut value = self.minimize_beta(b, alpha, alpha+1, depth-1, time, false); //Null window
+			let mut value = self.minimize_beta(b, alpha, alpha+1, depth-1, time); //Null window
 			if value > alpha && value < beta {
-				value = self.minimize_beta(b, alpha, beta, depth-1, time, false); //Re-search
+				value = self.minimize_beta(b, alpha, beta, depth-1, time); //Re-search
 				if value > alpha{
 					alpha = value;
 					exact = true;
@@ -245,10 +245,10 @@ impl IDDFS{
 		alpha
 	}
 
-	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant, check: bool) -> Score{
+	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
 		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 1 { return self.quimin(b, alpha); }
-		if check && time.elapsed() >= self.time { return beta; }
+		//if check && time.elapsed() >= self.time { return beta; }
 
 		let mut exact = false;
 		let mut best = None;
@@ -267,7 +267,7 @@ impl IDDFS{
 				if b.is_legal(&m){
 					prev = t.best;
 					b.move_piece(&m);
-					let value = self.maximize_alpha(b, alpha, beta, depth-1, time, false);
+					let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
 					b.go_back();
 
 					if value <= alpha{
@@ -290,7 +290,7 @@ impl IDDFS{
 				m.set_heuristic_value(b.value_of(&m));
 				kill = Some(m);
 				b.move_piece(&m);
-				let value = self.maximize_alpha(b, alpha, beta, depth-1, time, false);
+				let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
 				b.go_back();
 
 				if value <= alpha{
@@ -314,7 +314,7 @@ impl IDDFS{
 		if prev.is_none() && kill.is_none(){
 			let m = iter.next().unwrap();
 			b.move_piece(&m);
-			let value = self.maximize_alpha(b, alpha, beta, depth-1, time, false);
+			let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
 			b.go_back();
 			if value < beta{
 				if value <= alpha{
@@ -329,12 +329,12 @@ impl IDDFS{
 		}
 
 		for m in iter{
-			if check && time.elapsed() >= self.time { return beta; }
+			if depth >= 6 && time.elapsed() >= self.time { return beta; }
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
-			let mut value = self.maximize_alpha(b, beta-1, beta, depth-1, time, false);
+			let mut value = self.maximize_alpha(b, beta-1, beta, depth-1, time);
 			if value > alpha && value < beta{
-				value = self.maximize_alpha(b, alpha, beta, depth-1, time, false);
+				value = self.maximize_alpha(b, alpha, beta, depth-1, time);
 				if value < beta{
 					beta = value;
 					exact = true;

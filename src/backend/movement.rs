@@ -47,7 +47,7 @@ impl Move{
 		match l.next(){
 			None => Some(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, None, 0)),
 			Some(c) => {
-				if "PRNBQK".to_string().chars().any(|p| p == c) { 
+				if "RNBQrnbq".to_string().chars().any(|p| p == c) { 
 					Some(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, Piece::new(c), 0))
 			 	}else{ None }
 			}

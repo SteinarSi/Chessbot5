@@ -10,5 +10,6 @@ pub mod alphakiller;
 pub mod quiescence;
 pub mod pvs;
 pub mod iddfs;
+pub mod omikron;
 
 //En mappe for alle bottene. Hver av dem er en oppgradering til den forrige.

@@ -9,14 +9,15 @@ mod ai;
 use crate::backend::{board::*, movement::*};
 use crate::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::AlphaBeta, 
             memoalpha::MemoAlpha, alphakiller::AlphaKiller, quiescence::Quiescence,
-            pvs::PVS, iddfs::IDDFS};
+            pvs::PVS, iddfs::IDDFS, omikron::Omikron};
 use std::io;
 
 fn main(){
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
     //simulate(&mut IDDFS::new(), 99);
-    play_against(&mut IDDFS::new(), 99, Black);
-    //vs(&mut Quiescence::new(), 8, &mut MemoMax::new(), 4);
+    //play_against(&mut IDDFS::new(), 99, White);
+    //play_against(&mut Omikron::new(), 99, White);
+    vs(&mut Omikron::new(), 9, &mut MemoMax::new(), 4);
     //compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
 }
 

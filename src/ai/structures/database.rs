@@ -16,7 +16,7 @@ impl Database{
 				fs::read_to_string("openings.zobrist").expect("I created the file, but still can't find it")
 			}
 		};
-		for mut line in file.split("\n").map(|l| l.trim_right().split(" ")){
+		for mut line in file.split("\n").map(|l| l.trim_end().split(" ")){
 			let key = match line.next(){
 				None    => break,
 				Some(k) => match k.parse(){
@@ -49,7 +49,7 @@ fn create_database(){
 	let mut db: HashMap<i64, HashSet<Move>> = HashMap::new();
 	let fil = fs::read_to_string("openings.txt").expect("Could not find the file.");
 	for line in fil.split("\n"){
-		let moves = line.trim_right().split(" ").map(|m| Move::from_str(m).expect(&format!("Could not parse {}", m)));
+		let moves = line.trim_end().split(" ").map(|m| Move::from_str(m).expect(&format!("Could not parse {}", m)));
 		let mut b = Board::new();
 		for m in moves.into_iter(){
 			let hash = b.hash();
@@ -60,11 +60,11 @@ fn create_database(){
 
 	let mut file = fs::File::create("openings.zobrist").unwrap();
 	for key in db.keys(){
-		file.write_all(key.to_string().as_bytes());
+		file.write_all(key.to_string().as_bytes()).expect("Failed when writing opening book.");
 		for m in db.get(&key).unwrap(){
-			file.write_all(format!(" {}", m.to_string_short()).as_bytes());
+			file.write_all(format!(" {}", m.to_string_short()).as_bytes()).expect("Failed when writing opening book.");
 		}
-		file.write_all("\n".as_bytes());
+		file.write_all("\n".as_bytes()).expect("Failed when writing opening book.");
 	}
 }
 
@@ -93,6 +93,8 @@ mod database_tests{
 		b.move_str("b1c3");
 
 		let expected: Moves = ["g8f6", "f8b4", "d7d6", "b8c6"].iter().map(|m| Move::from_str(m).unwrap()).collect();
+
+		//Den velger et tilfeldig trekk, så la oss kalle denne mange ganger for sikkerhets skyld
 		assert!(expected.contains(&d.get(&b).unwrap()));
 		assert!(expected.contains(&d.get(&b).unwrap()));
 		assert!(expected.contains(&d.get(&b).unwrap()));

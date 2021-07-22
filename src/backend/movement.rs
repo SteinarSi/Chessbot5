@@ -54,6 +54,15 @@ impl Move{
 		}
 	}
 
+	pub fn to_string_short(&self) -> String{
+		let mut ret = String::new();
+		ret.push(char::from_u32(self.from.x as u32 + 97).unwrap());
+		ret.push(char::from_digit((8 - self.from.y) as u32, 10).unwrap());
+		ret.push(char::from_u32(self.to.x as u32 + 97).unwrap());
+		ret.push(char::from_digit((8 - self.to.y) as u32, 10).unwrap());
+		ret
+	}
+
 	pub fn heuristic_value(&self) -> Score{
 		self.heuristic_value
 	}
@@ -111,6 +120,10 @@ impl Moves{
 
 	pub fn shuffle(&mut self){
 		self.0.shuffle(&mut thread_rng());
+	}
+
+	pub fn choice(&self) -> Move{
+		self.0.choose(&mut rand::thread_rng()).expect("This list of Moves wasn't supposed to be empty, but it is").clone()
 	}
 }
 

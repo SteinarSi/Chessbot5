@@ -7,7 +7,7 @@ use rand::thread_rng;
 use rand::prelude::SliceRandom;
 use super::piece::{Piece, Color, Color::*};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Hash, Eq)]
 pub struct Move{
 	pub from: Position,
 	pub to: Position,
@@ -22,7 +22,7 @@ pub struct Moves(Vec<Move>);
 pub type Score = i32;
 pub const INFINITY: Score = 2147483647;
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Position{
 	pub x: usize,
 	pub y: usize

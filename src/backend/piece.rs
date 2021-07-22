@@ -3,13 +3,13 @@ use PieceType::*;
 use Color::*;
 use super::movement::{Score, Position};
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Color{
 	White,
 	Black
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum PieceType{
 	King,
 	Queen, 
@@ -19,7 +19,7 @@ pub enum PieceType{
 	Pawn
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Piece{
 	pub piecetype: PieceType,
 	pub color: Color

@@ -1,5 +1,5 @@
 pub mod interface;
-mod structures;
+pub mod structures;
 
 //Sortert etter kompetanse:
 pub mod minimax;

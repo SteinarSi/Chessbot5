@@ -13,9 +13,10 @@ use crate::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::Al
 use std::io;
 
 fn main(){
+    crate::ai::structures::database::create_database();
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
     //simulate(&mut IDDFS::new(), 99);
-    play_against(&mut IDDFS::new(), 99, White);
+    //play_against(&mut IDDFS::new(), 99, Black);
     //vs(&mut Quiescence::new(), 8, &mut MemoMax::new(), 4);
     //compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
 }

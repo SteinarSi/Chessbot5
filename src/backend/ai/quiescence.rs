@@ -1,18 +1,21 @@
-use crate::backend::{movement::*, board::*};
+use crate::backend::board_representation::{movement::*, board::*};
 use super::structures::{memomap::*, killerray::*};
 use super::interface::AI;
 
 const INITIAL_DEPTH: usize = 8;
 
-pub struct PVS{
+// Alfa-beta-pruning, memoisering, killer heurestic, samt et quiescence search når depth=1.
+// 'Quiesce' betyr 'stille' på fransk, og betyr i vår kontekst å kun evaluere 'rolige' trekk.
+// Vi definerer et 'rolig' trekk som et trekk som flytter til en rute som ikke blir truet av motstanderen.
+pub struct Quiescence{
 	memo: MemoMap,
 	depth: usize,
 	killerray: Killerray
 }
 
-impl AI for PVS{
+impl AI for Quiescence{
 	fn new() -> Self{
-		PVS{memo: MemoMap::new(), depth: INITIAL_DEPTH, killerray: Killerray::new()}
+		Quiescence{memo: MemoMap::new(), depth: INITIAL_DEPTH, killerray: Killerray::new()}
 	}
 
 	fn set_depth(&mut self, depth: usize){
@@ -31,7 +34,7 @@ impl AI for PVS{
 	}
 }
 
-impl PVS{
+impl Quiescence{
 	pub fn principal_variation(&mut self, mut b: Board) -> Moves{
 		let mut ret = Moves::new();
 		self.search(b.clone());
@@ -186,46 +189,25 @@ impl PVS{
 		if ms.len() == 0 { return b.end_score(); }
 
 		ms.sort_by_heuristic(White);
-		let mut iter = ms.into_iter();
-
-		if prev == None && kill == None{
-			let m = iter.next().unwrap();
+		for m in ms{
+			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
 			let value = self.minimize_beta(b, alpha, beta, depth-1);
 			b.go_back();
-			if value > alpha{
-				if value >= beta{
-					self.killerray.put(m.clone(), b.counter());
-					self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-					return value;
-				}
-				alpha = value;
-				best = Some(m);
-				exact = true;
-			}
-		}
 
-		for m in iter{
-			if Some(m) == prev || Some(m) == kill { continue; }
-			b.move_piece(&m);
-			let mut value = self.minimize_beta(b, alpha, alpha+1, depth-1); //Null window
-			if value > alpha && value < beta {
-				value = self.minimize_beta(b, alpha, beta, depth-1); //Re-search
-				if value > alpha{
-					alpha = value;
-					exact = true;
-					best = Some(m);
-				}
-			}
-			b.go_back();
-
+			//Beta-cutoff
 			if value >= beta{
 				self.killerray.put(m.clone(), b.counter());
 				self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 				return value;
 			}
-		}
 
+			if value > alpha{
+				alpha = value;
+				exact = true;
+				best = Some(m);
+			}
+		}
 		self.memo.insert(b.hash(), alpha, if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }, depth, best);
 		alpha
 	}
@@ -293,42 +275,23 @@ impl PVS{
 		let mut ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
 		ms.sort_by_heuristic(Black);
-		let mut iter = ms.into_iter();
 
-		if prev.is_none() && kill.is_none(){
-			let m = iter.next().unwrap();
+		for m in ms{
+			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
 			let value = self.maximize_alpha(b, alpha, beta, depth-1);
 			b.go_back();
-			if value < beta{
-				if value <= alpha{
-					self.killerray.put(m.clone(), b.counter());
-					self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-					return value;
-				}
-				beta = value;
-				exact = true;
-				best = Some(m);
-			}
-		}
 
-		for m in iter{
-			if Some(m) == prev || Some(m) == kill { continue; }
-			b.move_piece(&m);
-			let mut value = self.maximize_alpha(b, beta-1, beta, depth-1);
-			if value > alpha && value < beta{
-				value = self.maximize_alpha(b, alpha, beta, depth-1);
-				if value < beta{
-					beta = value;
-					exact = true;
-					best = Some(m);
-				}
-			}
-			b.go_back();
 			if value <= alpha{
 				self.killerray.put(m, depth);
 				self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
 				return value;
+			}
+
+			if value < beta{
+				exact = true;
+				beta = value;
+				best = Some(m);
 			}
 		}
 		self.memo.insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);

@@ -1,5 +1,2 @@
-pub mod board;
-pub mod piece;
-pub mod movement;
-mod repetition_counter;
-mod zobrist;
+pub mod ai;
+pub mod board_representation;

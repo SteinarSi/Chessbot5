@@ -1,4 +1,4 @@
-use crate::backend::movement::*;
+use crate::backend::board_representation::movement::*;
 
 //Basert på Killer heuristic: https://en.wikipedia.org/wiki/Killer_heuristic
 pub struct Killerray{

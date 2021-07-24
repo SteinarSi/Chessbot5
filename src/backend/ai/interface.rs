@@ -1,4 +1,4 @@
-use crate::backend::{movement, board};
+use crate::backend::board_representation::{movement, board};
 
 pub trait AI{
 	fn new() -> Self where Self: Sized;

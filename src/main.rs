@@ -4,10 +4,9 @@
 #![allow(bare_trait_objects)]
 
 mod backend;
-mod ai;
 
-use crate::backend::{board::*, movement::*};
-use crate::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::AlphaBeta, 
+use crate::backend::board_representation::{board::*, movement::*};
+use crate::backend::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::AlphaBeta, 
             memoalpha::MemoAlpha, alphakiller::AlphaKiller, quiescence::Quiescence,
             pvs::PVS, iddfs::IDDFS, omikron::Omikron};
 use std::io;

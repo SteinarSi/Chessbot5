@@ -1,21 +1,21 @@
-use crate::backend::{movement::*, board::*};
-use super::structures::{memomap::*, killerray::*};
+use crate::backend::board_representation::{movement::*, board::*};
+use super::structures::memomap::*;
 use super::interface::AI;
 
 const INITIAL_DEPTH: usize = 8;
 
 
-// Alfa-beta-pruning, memoisering, i tillegg til å lagre alle trekk som forårsaker beta-cutoffs i en array.
-// De trekkene kalles 'Killer Moves', og enhver posisjon vil først evaluere dybdens Killer Move om det er lovlig før de andre trekkene.
-pub struct AlphaKiller{
+// Alfa-beta-pruning, med memoisering.
+// Har den sett og evaluert en posisjon før vil den sammenligne den med alfa og beta.
+// Hvis posisjonen må evalueres lengre ser den om den har et lagret beste trekk, og evaluerer det først.
+pub struct MemoAlpha{
 	memo: MemoMap,
-	depth: usize,
-	killerray: Killerray
+	depth: usize
 }
 
-impl AI for AlphaKiller{
+impl AI for MemoAlpha{
 	fn new() -> Self{
-		AlphaKiller{memo: MemoMap::new(), depth: INITIAL_DEPTH, killerray: Killerray::new()}
+		MemoAlpha{memo: MemoMap::new(), depth: INITIAL_DEPTH}
 	}
 
 	fn set_depth(&mut self, depth: usize){
@@ -34,7 +34,7 @@ impl AI for AlphaKiller{
 	}
 }
 
-impl AlphaKiller{
+impl MemoAlpha{
 	pub fn principal_variation(&mut self, mut b: Board) -> Moves{
 		let mut ret = Moves::new();
 		self.search(b.clone());
@@ -61,7 +61,6 @@ impl AlphaKiller{
 		let mut best = None;
 		let mut exact = false;
 		let mut prev = None;
-		let mut kill = None;
 
 		if let Some(t) = self.memo.get(&b.hash()){
 			if t.depth >= depth{
@@ -73,30 +72,7 @@ impl AlphaKiller{
 				if alpha >= beta { return t.value; }
 			}
 			else if let Some(m) = t.best{
-				if b.is_legal(&m) { 
-					prev = t.best;
-					b.move_piece(&m);
-					let value = self.minimize_beta(b, alpha, beta, depth-1);
-					b.go_back();
-
-					if value >= beta{
-						self.killerray.put(m.clone(), b.counter());
-						self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-						return value;
-					}
-
-					if value > alpha{
-						best = Some(m);
-						exact = true;
-						alpha = value;
-					}
-				}
-			}
-		}
-		if let Some(mut m) = self.killerray.get(b.counter()){
-			if b.is_legal(&m){
-				m.set_heuristic_value(b.value_of(&m));
-				kill = Some(m);
+				prev = t.best;
 				b.move_piece(&m);
 				let value = self.minimize_beta(b, alpha, beta, depth-1);
 				b.go_back();
@@ -118,14 +94,14 @@ impl AlphaKiller{
 		if ms.len() == 0 { return b.end_score(); }
 
 		ms.sort_by_heuristic(White);
+
 		for m in ms{
-			if Some(m) == prev || Some(m) == kill { continue; }
+			if Some(m) == prev { continue; }
 			b.move_piece(&m);
 			let value = self.minimize_beta(b, alpha, beta, depth-1);
 			b.go_back();
 
 			if value >= beta{
-				self.killerray.put(m.clone(), b.counter());
 				self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 				return value;
 			}
@@ -147,7 +123,6 @@ impl AlphaKiller{
 		let mut exact = false;
 		let mut best = None;
 		let mut prev = None;
-		let mut kill = None;
 
 		if let Some(t) = self.memo.get(&b.hash()){
 			if t.depth >= depth{
@@ -158,31 +133,7 @@ impl AlphaKiller{
 				}
 			}
 			else if let Some(m) = t.best{
-				if b.is_legal(&m){
-					prev = t.best;
-					b.move_piece(&m);
-					let value = self.maximize_alpha(b, alpha, beta, depth-1);
-					b.go_back();
-
-					if value <= alpha{
-						self.killerray.put(m, b.counter());
-						self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-						return value;
-					}
-
-					if value < beta{
-						exact = true;
-						beta = value;
-						best = Some(m);
-					}
-				}
-			}
-		}
-
-		if let Some(mut m) = self.killerray.get(b.counter()){
-			if b.is_legal(&m){
-				m.set_heuristic_value(b.value_of(&m));
-				kill = Some(m);
+				prev = t.best;
 				b.move_piece(&m);
 				let value = self.maximize_alpha(b, alpha, beta, depth-1);
 				b.go_back();
@@ -205,13 +156,12 @@ impl AlphaKiller{
 		ms.sort_by_heuristic(Black);
 
 		for m in ms{
-			if Some(m) == prev || Some(m) == kill { continue; }
+			if Some(m) == prev { continue; }
 			b.move_piece(&m);
 			let value = self.maximize_alpha(b, alpha, beta, depth-1);
 			b.go_back();
 
 			if value <= alpha{
-				self.killerray.put(m, depth);
 				self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
 				return value;
 			}

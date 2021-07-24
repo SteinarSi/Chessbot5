@@ -1,5 +1,5 @@
-use crate::backend::{movement::*, board::*};
-use super::structures::{memomap::*, killerray::*, database::*};
+use crate::backend::board_representation::{movement::*, board::*};
+use super::structures::{memomap::*, killerray::*};
 use super::interface::AI;
 
 use std::time::{Duration, Instant};
@@ -7,17 +7,16 @@ use std::time::{Duration, Instant};
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
 const INITIAL_TIME: Duration = Duration::from_secs(10);
 
-pub struct Omikron{
+pub struct IDDFS{
 	memo: MemoMap,
 	depth: usize,
 	killerray: Killerray,
-	time: Duration,
-	database: Database
+	time: Duration
 }
 
-impl AI for Omikron{
+impl AI for IDDFS{
 	fn new() -> Self{
-		Omikron{memo: MemoMap::new(), depth: INITIAL_DEPTH, killerray: Killerray::new(), time: INITIAL_TIME, database: Database::new()}
+		IDDFS{memo: MemoMap::new(), depth: INITIAL_DEPTH, killerray: Killerray::new(), time: INITIAL_TIME}
 	}
 
 	fn set_depth(&mut self, depth: usize){
@@ -25,29 +24,24 @@ impl AI for Omikron{
 	}
 
 	fn search(&mut self, mut b: Board) -> Move{
-		match self.database.get(&b){
-			Some(m) => m,
-			None    => {
-				let time = Instant::now();
-				let mut d = 2;
-				while time.elapsed() < self.time && d <= self.depth {
-					if b.color_to_move() == White{
-						self.maximize_alpha(&mut b, - INFINITY, INFINITY, d, &time);
-					}
-					else{
-						self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time);
-					}
-					d += 1;
-				}
-				println!("Depth reached: {}", d-1);
-				self.memo.clean();
-		        self.memo.get(&b.hash()).unwrap().best.unwrap()
+		let time = Instant::now();
+		let mut d = 2;
+		while time.elapsed() < self.time && d <= self.depth {
+			if b.color_to_move() == White{
+				self.maximize_alpha(&mut b, - INFINITY, INFINITY, d, &time);
 			}
+			else{
+				self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time);
+			}
+			d += 1;
 		}
+		println!("Depth reached: {}", d-1);
+		self.memo.clean();
+        self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}
 }
 
-impl Omikron{
+impl IDDFS{
 	pub fn set_time(&mut self, seconds: u64){
 		self.time = Duration::from_secs(seconds);
 	}

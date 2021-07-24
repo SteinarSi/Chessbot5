@@ -1,4 +1,4 @@
-use crate::backend::{movement, board};
+use crate::backend::board_representation::{movement, board};
 use super::interface::AI;
 
 

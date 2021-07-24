@@ -5,4 +5,3 @@
 
 
 pub mod backend;
-pub mod ai;

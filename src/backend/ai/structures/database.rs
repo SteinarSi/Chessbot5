@@ -1,4 +1,4 @@
-use crate::backend::board::*;
+use crate::backend::board_representation::board::*;
 use std::{env, fs, io::Write, collections::{HashMap, HashSet}};
 use std::io::LineWriter;
 

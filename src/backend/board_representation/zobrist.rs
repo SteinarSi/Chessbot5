@@ -1,7 +1,4 @@
-use crate::backend::piece::{Piece, Color, Color::*, PieceType::*};
-use crate::backend::movement::Position;
-use crate::backend::board::Board;
-
+use crate::backend::board_representation::{piece::{Piece, Color, Color::*, PieceType::*}, movement::Position, board::Board};
 use rand::prelude::*;
 use rand_pcg::Pcg64;
 

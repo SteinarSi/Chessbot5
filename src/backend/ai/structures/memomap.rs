@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::backend::board::{Move, Score};
+use crate::backend::board_representation::board::{Move, Score};
 
 pub type Key = i64;
 const LIFETIME: u8 = 3;

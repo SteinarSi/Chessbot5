@@ -34,8 +34,9 @@ impl Database{
 		Database{map}
 	}
 
-	pub fn get(&self, b: &Board) -> Option<Move>{
+	pub fn get(&self, b: &mut Board) -> Option<Move>{
 		let mut m = self.map.get(&b.hash())?.choice();
+		if ! b.is_legal(&m) { return None; }
 		m.set_heuristic_value(b.value_of(&m));
 		Some(m)
 	}

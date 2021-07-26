@@ -25,7 +25,7 @@ impl AI for Omikron{
 	}
 
 	fn search(&mut self, mut b: Board) -> Move{
-		match self.database.get(&b){
+		match self.database.get(&mut b){
 			Some(m) => m,
 			None    => {
 				let time = Instant::now();

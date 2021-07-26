@@ -6,10 +6,10 @@ use std::io;
 
 pub fn test_bot(){
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
-    //simulate(&mut IDDFS::new(), 99);
+    simulate(&mut Omikron::new(), 99);
     //play_against(&mut IDDFS::new(), 99, White);
     //play_against(&mut Omikron::new(), 99, White);
-    vs(&mut Omikron::new(), 9, &mut MemoMax::new(), 4);
+    //vs(&mut Omikron::new(), 9, &mut MemoMax::new(), 4);
     //compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
 }
 

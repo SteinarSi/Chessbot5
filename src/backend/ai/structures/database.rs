@@ -82,7 +82,7 @@ mod database_tests{
 	#[test]
 	fn can_get_move(){
 		let d = Database::new();
-		assert!(d.get(&Board::new()).is_some());
+		assert!(d.get(&mut Board::new()).is_some());
 	}
 
 	#[test]
@@ -93,15 +93,15 @@ mod database_tests{
 		b.move_str("e7e5");
 		b.move_str("b1c3");
 
-		let expected: Moves = ["g8f6", "f8b4", "d7d6", "b8c6"].iter().map(|m| Move::from_str(m).unwrap()).collect();
+		let expected: Moves = ["g8f6", "f8b4", "d7d6", "b8c6", "f7f5"].iter().map(|m| Move::from_str(m).unwrap()).collect();
 
 		//Den velger et tilfeldig trekk, så la oss kalle denne mange ganger for sikkerhets skyld
-		assert!(expected.contains(&d.get(&b).unwrap()));
-		assert!(expected.contains(&d.get(&b).unwrap()));
-		assert!(expected.contains(&d.get(&b).unwrap()));
-		assert!(expected.contains(&d.get(&b).unwrap()));
-		assert!(expected.contains(&d.get(&b).unwrap()));
-		assert!(expected.contains(&d.get(&b).unwrap()));
+		assert!(expected.contains(&d.get(&mut b).unwrap()));
+		assert!(expected.contains(&d.get(&mut b).unwrap()));
+		assert!(expected.contains(&d.get(&mut b).unwrap()));
+		assert!(expected.contains(&d.get(&mut b).unwrap()));
+		assert!(expected.contains(&d.get(&mut b).unwrap()));
+		assert!(expected.contains(&d.get(&mut b).unwrap()));
 	}
 }
 

@@ -5,7 +5,7 @@ use super::interface::AI;
 use std::time::{Duration, Instant};
 
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
-const INITIAL_TIME: Duration = Duration::from_secs(10);
+const INITIAL_TIME: Duration = Duration::from_secs(20);
 
 pub struct Omikron{
 	memo: MemoMap,

@@ -227,7 +227,7 @@ impl Board{
 		}
 		else{
 			let kpos = self.bkingpos[self.counter];
-			self.moves.len() == 0 && self.is_threatened_by(&kpos, White)
+			self.moves().len() == 0 && self.is_threatened_by(&kpos, White)
 		}
 	}
 
@@ -369,7 +369,7 @@ impl Board{
 				to_y += dir.1;
 				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'diagonal_down; }
 				if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
-					if p.color == color && (p.piecetype == PieceType::Bishop || p.piecetype == PieceType::Queen || p.piecetype == PieceType::King || (p.piecetype == PieceType::Pawn && p.color == White && first_step)){
+					if p.color == color && (p.piecetype == PieceType::Bishop || p.piecetype == PieceType::Queen || (p.piecetype == PieceType::King && first_step) || (p.piecetype == PieceType::Pawn && p.color == White && first_step)){
 						return true;
 					}
 					break;
@@ -918,6 +918,23 @@ PqP--PPP
 R--QKBNR";
 		let mut b = Board::custom(s, Black);
 		let m = &Move::from_str("b2a1").unwrap();
+		assert!(b.is_legal(&m));
+		assert!(b.moves().contains(&m));
+	}
+
+	#[test]
+	fn fourth_real_case(){
+		let s = "\
+r-------
+---k----
+--p----p
+p-P-K-pP
+R-P-B-P-
+-----P--
+--------
+--------";
+		let mut b = Board::custom(s, Black);
+		let m = &Move::from_str("d7c7").unwrap();
 		assert!(b.is_legal(&m));
 		assert!(b.moves().contains(&m));
 	}

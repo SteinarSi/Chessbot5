@@ -5,7 +5,7 @@ use super::interface::AI;
 use std::time::{Duration, Instant};
 
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
-const INITIAL_TIME: Duration = Duration::from_secs(20);
+const INITIAL_TIME: Duration = Duration::from_secs(10);
 
 pub struct Omikron{
 	memo: MemoMap,
@@ -38,8 +38,10 @@ impl AI for Omikron{
 						self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time);
 					}
 					d += 1;
+					//println!("Best so far, at depth {}: {}", d-1, self.memo.get(&b.hash()).unwrap().best.unwrap().to_string());
 				}
-				println!("Depth reached: {}", d-1);
+				//println!("Depth reached: {}", d-1);
+				//println!("Expected value: {}", self.memo.get(&b.hash()).unwrap().value);
 				self.memo.clean();
 		        self.memo.get(&b.hash()).unwrap().best.unwrap()
 			}
@@ -76,7 +78,7 @@ impl Omikron{
 		//Om den nåværende scoren allerede er uakseptabel for svart kan vi anta at hvits neste trekk gjør den enda mer uakseptabel.
 		//Da er det ikke vits i å sjekke engang. Dette antar altså et hvit ikke er i zugswang.
 		let stand_pat = b.heuristic_value();
-		if stand_pat >= beta { return stand_pat; } 
+		if stand_pat >= beta && ! b.is_check() { return stand_pat; } 
 
 		let ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
@@ -104,7 +106,7 @@ impl Omikron{
 
 	fn quimin(&mut self, b: &mut Board, alpha: Score) -> Score{
 		let stand_pat = b.heuristic_value();
-		if stand_pat <= alpha { return stand_pat; }
+		if stand_pat <= alpha && ! b.is_check() { return stand_pat; }
 
 		let ms = b.moves();
 		if ms.len() == 0 { return b.end_score(); }
@@ -132,7 +134,7 @@ impl Omikron{
 	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
 		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 1 { return self.quimax(b, beta); }
-		//if depth >= 6 && time.elapsed() >= self.time { return alpha; }
+
 		let mut best = None;
 		let mut exact = false;
 		let mut prev = None;
@@ -254,7 +256,6 @@ impl Omikron{
 	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
 		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 1 { return self.quimin(b, alpha); }
-		//if check && time.elapsed() >= self.time { return beta; }
 
 		let mut exact = false;
 		let mut best = None;
@@ -356,5 +357,33 @@ impl Omikron{
 		}
 		self.memo.insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);
 		beta
+	}
+}
+
+#[cfg(test)]
+mod omikron_tests{
+	use super::*;
+
+	#[test]
+	fn bot_takes_win_if_possible(){
+		let s = "\
+k-------
+------R-
+-------R
+--------
+--------
+--------
+--------
+-------K";
+		let mut b = Board::custom(s, White);
+		let mut bot = Omikron::new();
+		let ms = b.moves();
+
+		assert!(b.is_legal(&Move::from_str("h6h8").unwrap()));
+		let expected = Move::from_str("h6h8").unwrap();
+		let actual = bot.search(b);
+
+		assert!(expected.from == actual.from);
+		assert!(expected.to == actual.to);
 	}
 }

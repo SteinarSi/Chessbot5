@@ -162,6 +162,7 @@ impl Board{
 		}
 		ret = ret.into_iter().filter(|m| self.is_not_check_if(m)).collect();
 		ret.append(&mut self.castle_moves());
+
 		ret
 	}
 
@@ -220,15 +221,19 @@ impl Board{
 		self.zobrist.hash()
 	}
 
-	pub fn is_checkmate(&mut self) -> bool{
+	pub fn is_check(&self) -> bool{
 		if self.color_to_move == White{
 			let kpos = self.wkingpos[self.counter];
-			self.moves().len() == 0 && self.is_threatened_by(&kpos, Black)
+			self.is_threatened_by(&kpos, Black)
 		}
 		else{
 			let kpos = self.bkingpos[self.counter];
-			self.moves().len() == 0 && self.is_threatened_by(&kpos, White)
+			self.is_threatened_by(&kpos, White)
 		}
+	}
+
+	pub fn is_checkmate(&mut self) -> bool{
+		self.moves().len() == 0 && self.is_check()
 	}
 
     pub fn is_draw_by_repetition(&self) -> bool{
@@ -319,7 +324,6 @@ impl Board{
 		}
 		self.grid[m.from.y][m.from.x] = pie;
 		self.grid[m.to.y][m.to.x] = target;
-
 		ret
 	}
 
@@ -386,7 +390,7 @@ impl Board{
 				to_y += dir.1;
 				if to_x < 0 || to_x >= 8 || to_y < 0 || to_y >= 8 { continue 'diagonal_up; }
 				if let Some(p) = self.get_reference_at(to_x as usize, to_y as usize){
-					if p.color == color && (p.piecetype == PieceType::Bishop || p.piecetype == PieceType::Queen || p.piecetype == PieceType::King || (p.piecetype == PieceType::Pawn && p.color == Black && first_step)){
+					if p.color == color && (p.piecetype == PieceType::Bishop || p.piecetype == PieceType::Queen || (p.piecetype == PieceType::King && first_step) || (p.piecetype == PieceType::Pawn && p.color == Black && first_step)){
 						return true;
 					}
 					break;

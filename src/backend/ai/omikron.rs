@@ -5,7 +5,7 @@ use super::interface::AI;
 use std::time::{Duration, Instant};
 
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
-const INITIAL_TIME: Duration = Duration::from_secs(10);
+const INITIAL_TIME: Duration = Duration::from_secs(30);
 
 pub struct Omikron{
 	memo: MemoMap,
@@ -37,11 +37,13 @@ impl AI for Omikron{
 					else{
 						self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time);
 					}
+					if let Some(t) = self.memo.get(&b.hash()).unwrap().best{
+						println!("Best so far, at depth {}: {}", d, t.to_string_short());
+					}
 					d += 1;
-					//println!("Best so far, at depth {}: {}", d-1, self.memo.get(&b.hash()).unwrap().best.unwrap().to_string());
 				}
-				//println!("Depth reached: {}", d-1);
-				//println!("Expected value: {}", self.memo.get(&b.hash()).unwrap().value);
+				println!("Depth reached: {}", d-1);
+				println!("Expected value: {}", self.memo.get(&b.hash()).unwrap().value);
 				self.memo.clean();
 		        self.memo.get(&b.hash()).unwrap().best.unwrap()
 			}
@@ -364,6 +366,7 @@ impl Omikron{
 mod omikron_tests{
 	use super::*;
 
+	#[ignore]
 	#[test]
 	fn bot_takes_win_if_possible(){
 		let s = "\

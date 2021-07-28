@@ -37,13 +37,13 @@ impl AI for Omikron{
 					else{
 						self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time);
 					}
-					if let Some(t) = self.memo.get(&b.hash()).unwrap().best{
-						println!("Best so far, at depth {}: {}", d, t.to_string_short());
-					}
+					//if let Some(t) = self.memo.get(&b.hash()).unwrap().best{
+					//	println!("Best so far, at depth {}: {}", d, t.to_string_short());
+					//}
 					d += 1;
 				}
-				println!("Depth reached: {}", d-1);
-				println!("Expected value: {}", self.memo.get(&b.hash()).unwrap().value);
+				//println!("Depth reached: {}", d-1);
+				//println!("Expected value: {}", self.memo.get(&b.hash()).unwrap().value);
 				self.memo.clean();
 		        self.memo.get(&b.hash()).unwrap().best.unwrap()
 			}
@@ -380,13 +380,30 @@ k-------
 -------K";
 		let mut b = Board::custom(s, White);
 		let mut bot = Omikron::new();
-		let ms = b.moves();
 
-		assert!(b.is_legal(&Move::from_str("h6h8").unwrap()));
 		let expected = Move::from_str("h6h8").unwrap();
-		let actual = bot.search(b);
+		let actual = bot.search(b.clone());
+		assert!(b.is_legal(&expected));
 
 		assert!(expected.from == actual.from);
 		assert!(expected.to == actual.to);
+	}
+
+	#[ignore]
+	#[test]
+	//This should be a mate in a few moves, let's see if the bot actually gets it.
+	fn bot_should_win_this(){
+		let s = "\
+--------
+--------
+--k-----
+------R-
+-------R
+--------
+--------
+-------K";
+		let b = Board::custom(s, White);
+		let mut bot = Omikron::new();
+		panic!("{:?}", bot.principal_variation(b));
 	}
 }

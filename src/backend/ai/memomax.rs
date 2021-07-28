@@ -30,27 +30,25 @@ impl AI for MemoMax{
 		let ms = b.moves();
 		if ms.len() == 0 { panic!("Cannot pick a move when no moves are available"); }
 
-		let mut ret = Moves::new();
+		let mut ret = Vec::new();
 		if b.color_to_move() == White{
-			for mut m in ms.into_iter(){
+			for m in ms.into_iter(){
 				b.move_piece(&m);
-				m.set_actual_value(self.mini(&mut b, self.depth-1));
+				ret.push((m, self.mini(&mut b, self.depth-1)));
 				b.go_back();
-				ret.push(m);
 			}
-			ret.sort_by_actual(White);
+			ret.sort_by(|m1, m2| m2.1.cmp(&m1.1));
 		}
 		else{
-			for mut m in ms.into_iter(){
+			for m in ms.into_iter(){
 				b.move_piece(&m);
-				m.set_actual_value(self.maxi(&mut b, self.depth-1));
+				ret.push((m, self.maxi(&mut b, self.depth-1)));
 				b.go_back();
-				ret.push(m);
 			}
-			ret.sort_by_actual(Black);
+			ret.sort_by(|m1, m2| m1.1.cmp(&m2.1));
 		}
 
-		return ret[0];
+		ret[0].0
 	}
 }
 

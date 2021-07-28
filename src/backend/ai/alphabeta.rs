@@ -23,34 +23,32 @@ impl AI for AlphaBeta{
 		let mut ms = b.moves();
 		if ms.len() == 0 { panic!("Cannot pick a move with no moves to choose from!"); }
 
-		let mut ret = Moves::new();
+		let mut ret = Vec::new();
 		if b.color_to_move() == White{
 			ms.sort_by_heuristic(White);
 			let mut alpha = - INFINITY;
-			for mut m in ms{
+			for m in ms{
 				b.move_piece(&m);
 				let value = self.minimize_beta(&mut b, alpha, INFINITY, self.depth-1);
 				alpha = alpha.max(value);
-				m.set_actual_value(value);
+				ret.push((m, value));
 				b.go_back();
-				ret.push(m);
 			}
-			ret.sort_by_actual(White);
-			ret[0]
+			ret.sort_by(|m1, m2| m2.1.cmp(&m1.1));
+			ret[0].0
 		}
 		else{
 			ms.sort_by_heuristic(Black);
 			let mut beta = INFINITY;
-			for mut m in ms{
+			for m in ms{
 				b.move_piece(&m);
 				let value = self.maximize_alpha(&mut b, - INFINITY, beta, self.depth-1);
 				beta = beta.min(value);
-				m.set_actual_value(value);
+				ret.push((m, value));
 				b.go_back();
-				ret.push(m);
 			}
-			ret.sort_by_actual(Black);
-			ret[0]
+			ret.sort_by(|m1, m2| m1.1.cmp(&m2.1));
+			ret[0].0
 		}
 	}
 }

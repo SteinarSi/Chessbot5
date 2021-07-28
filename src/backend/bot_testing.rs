@@ -66,7 +66,7 @@ fn simulate(bot: &mut AI, depth: usize){
 
     loop{
         let m = bot.search(board.clone());
-        println!("{}", m.to_string());
+        println!("{}", m.to_string_short());
         board.move_piece(&m);
         println!("{}", board.to_string());
         if board.is_checkmate(){

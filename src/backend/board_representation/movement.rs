@@ -12,7 +12,6 @@ pub struct Move{
 	pub from: Position,
 	pub to: Position,
 	heuristic_value: Score,
-	actual_value: Option<Score>,
 	pub promote: Option<Piece>
 }
 
@@ -32,7 +31,7 @@ impl Move{
 	//Lager et nytt move. NB! Denne bryr seg kun om koordinater, der Origo er oppe til venstre.
 	//Dermed er e1->e2 det samme som (4, 7, 4, 6).
 	pub fn new(filefrom: usize, rankfrom: usize, fileto: usize, rankto: usize, promote: Option<Piece>, heuristic_value: Score) -> Self{
-		Move{from: Position{x: filefrom, y: rankfrom}, to: Position{x: fileto, y: rankto}, actual_value: None, promote, heuristic_value}
+		Move{from: Position{x: filefrom, y: rankfrom}, to: Position{x: fileto, y: rankto}, promote, heuristic_value}
 	}
 
 	//Parser en streng på formen "e2e4". "e4", "e2-e4", "Pe4" er ikke gyldig og gir None.
@@ -70,17 +69,6 @@ impl Move{
 	pub fn set_heuristic_value(&mut self, s: Score){
 		self.heuristic_value = s;
 	}
-
-	pub fn set_actual_value(&mut self, s: Score){
-		self.actual_value = Some(s);
-	}
-
-	pub fn actual_value(&self) -> Score{
-		match self.actual_value{
-			None    => { panic!("This move has no associated value."); }
-			Some(v) => v
-		}
-	}
 }
 
 impl Moves{
@@ -103,11 +91,6 @@ impl Moves{
 	pub fn sort_by_heuristic(&mut self, c: Color){
 		if c == White { self.0.sort_by(|m1, m2| m2.heuristic_value().cmp(&m1.heuristic_value())); }
 		else { self.0.sort_by(|m1, m2| m1.heuristic_value().cmp(&m2.heuristic_value())); }
-	}
-
-	pub fn sort_by_actual(&mut self, c: Color){
-		if c == White { self.0.sort_by(|m1, m2| m2.actual_value().cmp(&m1.actual_value())); }
-		else { self.0.sort_by(|m1, m2| m1.actual_value().cmp(&m2.actual_value())); }
 	}
 
 	pub fn contains(&self, m: &Move) -> bool{
@@ -196,20 +179,5 @@ mod move_tests{
 		moves.sort_by_heuristic(Black);
 
 		assert_eq!(moves, expected_black);
-	}
-
-	#[test]
-	fn can_sort_by_actual(){
-		let mut v = vec![Move::new(0, 0, 0, 0, None, 0), Move::new(3, 0, 0, 0, None, 0), Move::new(2, 0, 0, 0, None, 0), Move::new(1, 0, 0, 0, None, 0)];
-		v[0].actual_value = Some(-50);
-		v[1].actual_value = Some(100);
-		v[2].actual_value = Some(50);
-		v[3].actual_value = Some(25);
-		let expected_white = Moves(vec![v[1], v[2], v[3], v[0]]);
-
-		let mut moves = Moves(v);
-
-		moves.sort_by_actual(White);
-		assert_eq!(moves, expected_white);
 	}
 }

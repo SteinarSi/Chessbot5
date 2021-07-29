@@ -56,6 +56,7 @@ impl Board{
 	pub fn move_piece(&mut self, m: &Move){
 		let pie = self.get_clone_at(&m.from).unwrap();
 		let mut queens = self.queens[self.counter];
+		if m.promote.is_some() { queens += 1; }
 		if let Some(target) = self.get_clone_at(&m.to){
 			if target.piecetype == PieceType::Queen { queens -= 1; }
 			self.zobrist.update_pos(&m.to, &target);
@@ -254,7 +255,7 @@ impl Board{
         if self.is_draw_by_repetition() { return 0; }
 		if self.color_to_move == White{
 			if self.is_threatened_by(&self.wkingpos[self.counter], Black){
-				- INFINITY + self.counter as Score //Sjakk matt, svart vant
+				self.counter as Score - INFINITY //Sjakk matt, svart vant
 			}
 			else { 0 } //Patt
 		}

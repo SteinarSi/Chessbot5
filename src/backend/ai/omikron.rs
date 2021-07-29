@@ -5,7 +5,7 @@ use super::interface::AI;
 use std::time::{Duration, Instant};
 
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
-const INITIAL_TIME: Duration = Duration::from_secs(30);
+const INITIAL_TIME: Duration = Duration::from_secs(4);
 
 pub struct Omikron{
 	memo: MemoMap,
@@ -405,5 +405,39 @@ k-------
 		let b = Board::custom(s, White);
 		let mut bot = Omikron::new();
 		panic!("{:?}", bot.principal_variation(b));
+	}
+
+	#[ignore]
+	#[test]
+	fn promotion_mate(){
+		let s = "\
+-k------
+--R----p
+----N---
+--KP----
+--------
+--------
+--------
+--------";	
+		let mut bot = Omikron::new();
+		panic!("{:?}", bot.principal_variation(Board::custom(s, White)));	
+	}
+
+	#[ignore]
+	#[test]
+	fn pls(){
+	let s = "\
+--------
+--------
+--------
+--------
+--------
+-----k--
+p--r----
+-----K--";
+		let mut bot = Omikron::new();
+		let m = bot.search(Board::custom(s, Black));
+
+		assert!(&[String::from("a2a1"), String::from("d2d1")].contains(&m.to_string_short()));
 	}
 }

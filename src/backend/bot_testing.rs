@@ -5,6 +5,16 @@ use crate::backend::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alph
 use std::io;
 
 pub fn test_bot(){
+    let s = "\
+--------
+--------
+-----k--
+pP------
+------Kp
+-P------
+--------
+-----r--";
+    //simulate_from(&mut Omikron::new(), s, Black, 99);
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
     //simulate(&mut Omikron::new(), 99);
     //play_against(&mut IDDFS::new(), 99, White);
@@ -97,6 +107,26 @@ fn vs(bot1: &mut AI, depth1: usize, bot2: &mut AI, depth2: usize){
         }
 
         let m = bot2.search(board.clone());
+        board.move_piece(&m);
+        println!("{}", board.to_string());
+        if board.is_checkmate(){
+            println!("{} wins!", board.color_to_move().opposite());
+            break;
+        }else if board.is_draw_by_repetition(){
+            println!("Draw!");
+            break;
+        }
+    }
+}
+
+fn simulate_from(bot: &mut AI, s: &str, c: Color, depth: usize){
+    let mut board = Board::custom(s, c);
+    bot.set_depth(depth);
+    println!("{}", board.to_string());
+
+    loop{
+        let m = bot.search(board.clone());
+        println!("{}", m.to_string_short());
         board.move_piece(&m);
         println!("{}", board.to_string());
         if board.is_checkmate(){

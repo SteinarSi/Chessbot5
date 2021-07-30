@@ -42,8 +42,9 @@ impl AI for Omikron{
 					//}
 					d += 1;
 				}
-				let mem = self.memo.get(&b.hash()).unwrap();
 				println!("Depth reached: {}", d-1);
+				println!("{:?}", self.principal_variation(b.clone()));
+				let mem = self.memo.get(&b.hash()).unwrap();
 				println!("Expected value: {}, {:?}", mem.value, mem.flag);
 				self.memo.clean();
 		        self.memo.get(&b.hash()).unwrap().best.unwrap()
@@ -62,13 +63,12 @@ impl Omikron{
 
 	pub fn principal_variation(&mut self, mut b: Board) -> Moves{
 		let mut ret = Moves::new();
-		self.search(b.clone());
 		loop{
 			match self.memo.get(&b.hash()){
-				None => { return ret; }
+				None => { break; }
 				Some(m) => {
 					match m.best{
-						None => { return ret; }
+						None => { break; }
 						Some(m) => {
 							b.move_piece(&m);
 							ret.push(m);
@@ -77,6 +77,8 @@ impl Omikron{
 				}
 			}
 		}
+		if b.is_checkmate() { print!("Checkmate is imminent: "); }
+		ret
 
 	}
 
@@ -153,10 +155,9 @@ impl Omikron{
 				//Hvis dybden på oppslaget er nok, kan vi bruke verdiene umiddelbart.
 				match &t.flag{
 					TransFlag::EXACT       => { return t.value; }
-					TransFlag::LOWER_BOUND => { alpha = alpha.max(t.value); }
-					TransFlag::UPPER_BOUND => { beta  = beta .min(t.value); }
+					TransFlag::LOWER_BOUND => { if t.value >= beta { return t.value; } }
+					TransFlag::UPPER_BOUND => { if t.value <= alpha { return t.value; }}
 				}
-				if alpha >= beta { return t.value; }
 			}
 			//Hvis ikke kan vi ikke bruke verdiene.
 			//Da sjekker vi istedet om oppslaget har lagret et bra trekk, og evaluerer i så fall det trekket først.
@@ -283,10 +284,9 @@ impl Omikron{
 			if t.depth >= depth{
 				match &t.flag{
 					TransFlag::EXACT       => { return t.value; }
-					TransFlag::LOWER_BOUND => { alpha = alpha.max(t.value); }
-					TransFlag::UPPER_BOUND => { beta  = beta .min(t.value); }
+					TransFlag::LOWER_BOUND => { if t.value >= beta { return t.value; } }
+					TransFlag::UPPER_BOUND => { if t.value <= alpha { return t.value; }}
 				}
-				if alpha >= beta { return t.value; }
 			}
 			else if let Some(m) = t.best{
 				if b.is_legal(&m){
@@ -430,6 +430,7 @@ k-------
 -------K";
 		let b = Board::custom(s, White);
 		let mut bot = Omikron::new();
+		bot.search(b.clone());
 		panic!("{:?}", bot.principal_variation(b));
 	}
 
@@ -446,7 +447,9 @@ k-------
 --------
 --------";	
 		let mut bot = Omikron::new();
-		panic!("{:?}", bot.principal_variation(Board::custom(s, White)));	
+		let b = Board::custom(s, White);
+		bot.search(b.clone());
+		panic!("{:?}", bot.principal_variation(b));	
 	}
 
 	#[ignore]

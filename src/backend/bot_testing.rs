@@ -14,9 +14,9 @@ pP------
 -P------
 --------
 -----r--";
-    simulate_from(&mut Omikron::new(), s, Black, 99);
+    //simulate_from(&mut Omikron::new(), s, Black, 99);
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
-    //simulate(&mut Omikron::new(), 99);
+    simulate(&mut Omikron::new(), 99);
     //play_against(&mut IDDFS::new(), 99, White);
     //play_against(&mut Omikron::new(), 99, White);
     //vs(&mut Omikron::new(), 9, &mut MemoMax::new(), 4);
@@ -156,9 +156,10 @@ fn compare(l: &mut [(&str, &mut AI)], n: i8, depth: usize){
 }
 
 fn solve_position(s: &str, c: Color) -> Moves{
-    let b = Board::custom(s, c);
-    let mut iddfs = IDDFS::new();
-    iddfs.set_depth(20);
-    iddfs.set_time(20);
-    iddfs.principal_variation(b)
+    let mut bot = Omikron::new();
+    let mut b = Board::custom(s, c);
+    bot.set_time(30);
+    bot.search(b.clone());
+
+    bot.principal_variation(b)
 }

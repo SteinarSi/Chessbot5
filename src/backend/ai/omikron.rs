@@ -5,7 +5,7 @@ use super::interface::AI;
 use std::time::{Duration, Instant};
 
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
-const INITIAL_TIME: Duration = Duration::from_secs(4);
+const INITIAL_TIME: Duration = Duration::from_secs(10);
 
 pub struct Omikron{
 	memo: MemoMap,
@@ -42,10 +42,14 @@ impl AI for Omikron{
 					//}
 					d += 1;
 				}
-				//println!("Depth reached: {}", d-1);
-				//println!("Expected value: {}", self.memo.get(&b.hash()).unwrap().value);
+				let mem = self.memo.get(&b.hash()).unwrap();
+				println!("Depth reached: {}", d-1);
+				println!("Expected value: {}, {:?}", mem.value, mem.flag);
 				self.memo.clean();
 		        self.memo.get(&b.hash()).unwrap().best.unwrap()
+		        //let ret =self.memo.get(&b.hash()).unwrap().best.unwrap();
+		        //self.memo = MemoMap::new();
+		      	//ret
 			}
 		}
 	}
@@ -137,10 +141,11 @@ impl Omikron{
 		if b.is_draw_by_repetition() { return 0; }
 		if depth <= 1 { return self.quimax(b, beta); }
 
-		let mut best = None;
 		let mut exact = false;
+		let mut best = None;
 		let mut prev = None;
 		let mut kill = None;
+		let mut bestscore = - INFINITY;
 
 		//Sjekker om vi allerede har et relevant oppslag i hashmappet vårt.
 		if let Some(t) = self.memo.get(&b.hash()){
@@ -159,28 +164,28 @@ impl Omikron{
 				if b.is_legal(&m) { 
 					prev = t.best;
 					b.move_piece(&m);
-					let value = self.minimize_beta(b, alpha, beta, depth-1, time);
+					bestscore = self.minimize_beta(b, alpha, beta, depth-1, time);
 					b.go_back();
 
 					//Beta-cutoff, stillingen er uakseptabel for svart.
-					if value >= beta{
+					if bestscore >= beta{
 						self.killerray.put(m.clone(), b.counter());
-						self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-						return value;
+						self.memo.insert(b.hash(), bestscore, TransFlag::LOWER_BOUND, depth, Some(m));
+						return bestscore;
 					}
 
 					//Trekket forbedret alfa, dette er dermed en PV-node.
-					if value > alpha{
+					if bestscore > alpha{
 						best = Some(m);
 						exact = true;
-						alpha = value;
+						alpha = bestscore;
 					}
 				}
 			}
 		}
 
 		//Sjekker om vi har et 'Killer Move' for denne dybden.
-		//Da evaluerer vi det trekker først.
+		//Da evaluerer vi det trekket først.
 		if let Some(mut m) = self.killerray.get(b.counter()){
 			if b.is_legal(&m) && Some(m) != prev{
 				m.set_heuristic_value(b.value_of(&m));
@@ -189,17 +194,20 @@ impl Omikron{
 				let value = self.minimize_beta(b, alpha, beta, depth-1, time);
 				b.go_back();
 
-				//Beta-cutoff, stillingen er uakseptabel for svart.
-				if value >= beta{
-					self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-					return value;
-				}
+				if value > bestscore{
+					//Beta-cutoff, stillingen er uakseptabel for svart.
+					if value >= beta{
+						self.memo.insert(b.hash(), bestscore, TransFlag::LOWER_BOUND, depth, Some(m));
+						return value;
+					}
 
-				//Trekket forbedret alfa.
-				if value > alpha{
-					best = Some(m);
-					exact = true;
-					alpha = value;
+					//Trekket forbedret alfa.
+					if value > alpha{
+						best = Some(m);
+						exact = true;
+						alpha = value;
+					}
+					bestscore = value;
 				}
 			}
 		}
@@ -217,20 +225,23 @@ impl Omikron{
 			b.move_piece(&m);
 			let value = self.minimize_beta(b, alpha, beta, depth-1, time);
 			b.go_back();
-			if value > alpha{
-				if value >= beta{
-					self.killerray.put(m.clone(), b.counter());
-					self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-					return value;
+			if value > bestscore{
+				if value > alpha{
+					if value >= beta{
+						self.killerray.put(m.clone(), b.counter());
+						self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
+						return value;
+					}
+					alpha = value;
+					best = Some(m);
+					exact = true;
 				}
-				alpha = value;
-				best = Some(m);
-				exact = true;
+				bestscore = value;
 			}
 		}
 
 		for m in iter{
-			if depth >= 6 && time.elapsed() >= self.time { return alpha; } 
+			if depth >= 6 && time.elapsed() >= self.time { return bestscore; } 
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
 			let mut value = self.minimize_beta(b, alpha, alpha+1, depth-1, time); //Null window
@@ -244,15 +255,18 @@ impl Omikron{
 			}
 			b.go_back();
 
-			if value >= beta{
-				self.killerray.put(m.clone(), b.counter());
-				self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-				return value;
+			if value > bestscore{
+				bestscore = value;
+				if value >= beta{
+					self.killerray.put(m.clone(), b.counter());
+					self.memo.insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
+					return value;
+				}
 			}
 		}
 
 		self.memo.insert(b.hash(), alpha, if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }, depth, best);
-		alpha
+		bestscore
 	}
 
 	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
@@ -263,6 +277,7 @@ impl Omikron{
 		let mut best = None;
 		let mut prev = None;
 		let mut kill = None;
+		let mut bestscore = INFINITY;
 
 		if let Some(t) = self.memo.get(&b.hash()){
 			if t.depth >= depth{
@@ -271,23 +286,24 @@ impl Omikron{
 					TransFlag::LOWER_BOUND => { alpha = alpha.max(t.value); }
 					TransFlag::UPPER_BOUND => { beta  = beta .min(t.value); }
 				}
+				if alpha >= beta { return t.value; }
 			}
 			else if let Some(m) = t.best{
 				if b.is_legal(&m){
 					prev = t.best;
 					b.move_piece(&m);
-					let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
+					bestscore = self.maximize_alpha(b, alpha, beta, depth-1, time);
 					b.go_back();
 
-					if value <= alpha{
+					if bestscore <= alpha{
 						self.killerray.put(m, b.counter());
-						self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-						return value;
+						self.memo.insert(b.hash(), bestscore, TransFlag::UPPER_BOUND, depth, Some(m));
+						return bestscore;
 					}
 
-					if value < beta{
+					if bestscore < beta{
 						exact = true;
-						beta = value;
+						beta = bestscore;
 						best = Some(m);
 					}
 				}
@@ -302,15 +318,18 @@ impl Omikron{
 				let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
 				b.go_back();
 
-				if value <= alpha{
-					self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-					return value;
-				}
+				if value < bestscore{
+					if value <= alpha{
+						self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
+						return value;
+					}
 
-				if value < beta{
-					exact = true;
-					beta = value;
-					best = Some(m);
+					bestscore = value;
+					if value < beta{
+						exact = true;
+						beta = value;
+						best = Some(m);
+					}
 				}
 			}
 		}
@@ -325,20 +344,24 @@ impl Omikron{
 			b.move_piece(&m);
 			let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
 			b.go_back();
-			if value < beta{
-				if value <= alpha{
-					self.killerray.put(m.clone(), b.counter());
-					self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-					return value;
+
+			if value < bestscore{
+				if value < beta{
+					if value <= alpha{
+						self.killerray.put(m.clone(), b.counter());
+						self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
+						return value;
+					}
+					beta = value;
+					exact = true;
+					best = Some(m);
 				}
-				beta = value;
-				exact = true;
-				best = Some(m);
+				bestscore = value;
 			}
 		}
 
 		for m in iter{
-			if depth >= 6 && time.elapsed() >= self.time { return beta; }
+			if depth >= 6 && time.elapsed() >= self.time { return bestscore; }
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
 			let mut value = self.maximize_alpha(b, beta-1, beta, depth-1, time);
@@ -351,14 +374,17 @@ impl Omikron{
 				}
 			}
 			b.go_back();
-			if value <= alpha{
-				self.killerray.put(m, depth);
-				self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-				return value;
+			if value < bestscore{
+				if value <= alpha{
+					self.killerray.put(m, depth);
+					self.memo.insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
+					return value;
+				}
+				bestscore = value;
 			}
 		}
 		self.memo.insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);
-		beta
+		bestscore
 	}
 }
 

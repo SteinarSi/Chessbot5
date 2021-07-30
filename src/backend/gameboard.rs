@@ -1,4 +1,5 @@
 use crate::backend::board_representation::board::*;
+use crate::backend::board_representation::movement::*;
 use crate::backend::ai::interface::AI;
 use crate::backend::ai::omikron::Omikron;
 
@@ -18,6 +19,10 @@ impl Gameboard{
 
 	pub fn moves(&mut self) -> Moves{
 		self.board.moves()
+	}
+
+	pub fn moves_from(&mut self, x: usize, y: usize) -> Moves{
+		self.moves().into_iter().filter(|m| m.from == Position{x, y}).collect()
 	}
 
 	pub fn start_bot(&mut self){

@@ -1,6 +1,7 @@
 use crate::backend::board_representation::movement::*;
 
 //Basert på Killer heuristic: https://en.wikipedia.org/wiki/Killer_heuristic
+#[derive(Clone)]
 pub struct Killerray{
 	arr: [Option<Move>; SIZE]
 }

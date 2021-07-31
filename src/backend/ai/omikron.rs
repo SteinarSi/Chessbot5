@@ -2,6 +2,8 @@ use crate::backend::board_representation::{movement::*, board::*};
 use super::structures::{memomap::*, killerray::*, database::*};
 use super::interface::AI;
 
+use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::{Duration, Instant};
 
 const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi tester.
@@ -28,6 +30,11 @@ impl AI for Omikron{
 		match self.database.get(&mut b){
 			Some(m) => m,
 			None    => {
+				//let tm = &mut self.memo as *mut MemoMap;
+				//unsafe {
+				//	multisearch(&mut b, Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, &mut self.time)
+				//}
+				
 				let time = Instant::now();
 				let mut d = 2;
 				while time.elapsed() < self.time && d <= self.depth {
@@ -55,6 +62,31 @@ impl AI for Omikron{
 		}
 	}
 }
+
+fn multisearch(b: &mut Board, mut map: Arc<Mutex<&'static mut MemoMap>>, killerray: &Killerray, time: &Duration) -> Move{
+	let d = 6 ;
+	let mut tmap = &mut map as *mut Arc<Mutex<&mut MemoMap>>;
+	let mut tb = b.clone();
+	let mut tk = killerray.clone();
+	unsafe{
+		let mut tm = &mut *tmap;
+		let mut tb = b.clone();
+		let mut tk = killerray.clone();
+		let handle1 = thread::spawn(move || maximize_alpha(&mut tb, - INFINITY, INFINITY, d, &mut tm, &mut tk));
+		let mut tm = &mut *tmap;
+		let mut tb = b.clone();
+		let mut tk = killerray.clone();
+		let handle2 = thread::spawn(move || maximize_alpha(&mut tb, - INFINITY, INFINITY, d, &mut tm, &mut tk));
+
+		handle1.join();
+		handle2.join();
+	}
+
+	
+
+	Arc::get_mut(&mut map).unwrap().get_mut().unwrap().get(&b.hash()).unwrap().best.unwrap()
+}
+
 
 impl Omikron{
 	pub fn set_time(&mut self, seconds: u64){
@@ -392,6 +424,314 @@ impl Omikron{
 		}
 		self.memo.insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);
 		bestscore
+	}
+}
+fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mut map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray) -> Score{
+	if b.is_draw_by_repetition() { 
+		Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), 0, TransFlag::EXACT, 999, None);
+		return 0; 
+	}
+	if depth <= 1 { return quimax(b, beta); }
+
+	let mut exact = false;
+	let mut best = None;
+	let mut prev = None;
+	let mut kill = None;
+	let mut bestscore = - INFINITY;
+
+	//Sjekker om vi allerede har et relevant oppslag i hashmappet vårt.
+	if let Some(t) = Arc::get_mut(&mut map).unwrap().get_mut().unwrap().get(&b.hash()){
+		if t.depth >= depth{
+			//Hvis dybden på oppslaget er nok, kan vi bruke verdiene umiddelbart.
+			match &t.flag{
+				TransFlag::EXACT       => { return t.value; }
+				TransFlag::LOWER_BOUND => { if t.value >= beta { return t.value; } }
+				TransFlag::UPPER_BOUND => { if t.value <= alpha { return t.value; }}
+			}
+		}
+		//Hvis ikke kan vi ikke bruke verdiene.
+		//Da sjekker vi istedet om oppslaget har lagret et bra trekk, og evaluerer i så fall det trekket først.
+		else if let Some(m) = t.best{
+			if b.is_legal(&m) { 
+				prev = t.best;
+				b.move_piece(&m);
+				bestscore = minimize_beta(b, alpha, beta, depth-1, map, killerray);
+				b.go_back();
+
+				//Beta-cutoff, stillingen er uakseptabel for svart.
+				if bestscore >= beta{
+					killerray.put(m.clone(), b.counter());
+					Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), bestscore, TransFlag::LOWER_BOUND, depth, Some(m));
+					return bestscore;
+				}
+
+				//Trekket forbedret alfa, dette er dermed en PV-node.
+				if bestscore > alpha{
+					best = Some(m);
+					exact = true;
+					alpha = bestscore;
+				}
+			}
+		}
+	}
+
+	//Sjekker om vi har et 'Killer Move' for denne dybden.
+	//Da evaluerer vi det trekket først.
+	if let Some(mut m) = killerray.get(b.counter()){
+		if b.is_legal(&m) && Some(m) != prev{
+			m.set_heuristic_value(b.value_of(&m));
+			kill = Some(m);
+			b.move_piece(&m);
+			let value = minimize_beta(b, alpha, beta, depth-1, map, killerray);
+			b.go_back();
+
+			if value > bestscore{
+				//Beta-cutoff, stillingen er uakseptabel for svart.
+				if value >= beta{
+					Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), bestscore, TransFlag::LOWER_BOUND, depth, Some(m));
+					return value;
+				}
+
+				//Trekket forbedret alfa.
+				if value > alpha{
+					best = Some(m);
+					exact = true;
+					alpha = value;
+				}
+				bestscore = value;
+			}
+		}
+	}
+
+	// Først her, når vi allerede har vurdert eventuelle 'Killer'-trekk og memoiserte trekk,
+	// begynner vi å generere listen av alle trekk og evaluerer dem.
+	let mut ms = b.moves();
+	if ms.len() == 0 { return b.end_score(); }
+
+	ms.sort_by_heuristic(White);
+	let mut iter = ms.into_iter();
+
+	if prev == None && kill == None{
+		let m = iter.next().unwrap();
+		b.move_piece(&m);
+		let value = minimize_beta(b, alpha, beta, depth-1, map, killerray);
+		b.go_back();
+		if value > bestscore{
+			if value > alpha{
+				if value >= beta{
+					killerray.put(m.clone(), b.counter());
+					Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
+					return value;
+				}
+				alpha = value;
+				best = Some(m);
+				exact = true;
+			}
+			bestscore = value;
+		}
+	}
+
+	for m in iter{
+		//if depth >= 6 && time.elapsed() >= time { return bestscore; } 
+		if Some(m) == prev || Some(m) == kill { continue; }
+		b.move_piece(&m);
+		let mut value = minimize_beta(b, alpha, alpha+1, depth-1, map, killerray); //Null window
+		if value > alpha && value < beta {
+			value = minimize_beta(b, alpha, beta, depth-1, map, killerray); //Re-search
+			if value > alpha{
+				alpha = value;
+				exact = true;
+				best = Some(m);
+			}
+		}
+		b.go_back();
+
+		if value > bestscore{
+			bestscore = value;
+			if value >= beta{
+				killerray.put(m.clone(), b.counter());
+				Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
+				return value;
+			}
+		}
+	}
+
+	Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), alpha, if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }, depth, best);
+	bestscore
+}
+
+fn minimize_beta(b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, mut map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray) -> Score{
+	if b.is_draw_by_repetition() { 
+		Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), 0, TransFlag::EXACT, 999, None);
+		return 0; 
+	}
+	if depth <= 1 { return quimin(b, alpha); }
+
+	let mut exact = false;
+	let mut best = None;
+	let mut prev = None;
+	let mut kill = None;
+	let mut bestscore = INFINITY;
+
+	if let Some(t) = Arc::get_mut(&mut map).unwrap().get_mut().unwrap().get(&b.hash()){
+		if t.depth >= depth{
+			match &t.flag{
+				TransFlag::EXACT       => { return t.value; }
+				TransFlag::LOWER_BOUND => { if t.value >= beta { return t.value; } }
+				TransFlag::UPPER_BOUND => { if t.value <= alpha { return t.value; }}
+			}
+		}
+		else if let Some(m) = t.best{
+			if b.is_legal(&m){
+				prev = t.best;
+				b.move_piece(&m);
+				bestscore = maximize_alpha(b, alpha, beta, depth-1, map, killerray);
+				b.go_back();
+
+				if bestscore <= alpha{
+					killerray.put(m, b.counter());
+					Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), bestscore, TransFlag::UPPER_BOUND, depth, Some(m));
+					return bestscore;
+				}
+
+				if bestscore < beta{
+					exact = true;
+					beta = bestscore;
+					best = Some(m);
+				}
+			}
+		}
+	}
+
+	if let Some(mut m) = killerray.get(b.counter()){
+		if b.is_legal(&m) && Some(m) != prev{
+			m.set_heuristic_value(b.value_of(&m));
+			kill = Some(m);
+			b.move_piece(&m);
+			let value = maximize_alpha(b, alpha, beta, depth-1, map, killerray);
+			b.go_back();
+
+			if value < bestscore{
+				if value <= alpha{
+					Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
+					return value;
+				}
+
+				bestscore = value;
+				if value < beta{
+					exact = true;
+					beta = value;
+					best = Some(m);
+				}
+			}
+		}
+	}
+
+	let mut ms = b.moves();
+	if ms.len() == 0 { return b.end_score(); }
+	ms.sort_by_heuristic(Black);
+	let mut iter = ms.into_iter();
+
+	if prev.is_none() && kill.is_none(){
+		let m = iter.next().unwrap();
+		b.move_piece(&m);
+		let value = maximize_alpha(b, alpha, beta, depth-1, map, killerray);
+		b.go_back();
+
+		if value < bestscore{
+			if value < beta{
+				if value <= alpha{
+					killerray.put(m.clone(), b.counter());
+					Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
+					return value;
+				}
+				beta = value;
+				exact = true;
+				best = Some(m);
+			}
+			bestscore = value;
+		}
+	}
+
+	for m in iter{
+		//if depth >= 6 && time.elapsed() >= self.time { return bestscore; }
+		if Some(m) == prev || Some(m) == kill { continue; }
+		b.move_piece(&m);
+		let mut value = maximize_alpha(b, beta-1, beta, depth-1, map, killerray);
+		if value > alpha && value < beta{
+			value = maximize_alpha(b, alpha, beta, depth-1, map, killerray);
+			if value < beta{
+				beta = value;
+				exact = true;
+				best = Some(m);
+			}
+		}
+		b.go_back();
+		if value < bestscore{
+			if value <= alpha{
+				killerray.put(m, depth);
+				Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
+				return value;
+			}
+			bestscore = value;
+		}
+	}
+	Arc::get_mut(&mut map).unwrap().get_mut().unwrap().insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);
+	bestscore
+}
+
+fn quimax(b: &mut Board, beta: Score) -> Score{
+	//Om den nåværende scoren allerede er uakseptabel for svart kan vi anta at hvits neste trekk gjør den enda mer uakseptabel.
+	//Da er det ikke vits i å sjekke engang. Dette antar altså et hvit ikke er i zugswang.
+	let stand_pat = b.heuristic_value();
+	if stand_pat >= beta && ! b.is_check() { return stand_pat; } 
+
+	let ms = b.moves();
+	if ms.len() == 0 { return b.end_score(); }
+
+	//Filtrerer trekk, vi vil kun ha trekk som flytter til en rute som ikke er truet.
+	let mut arr = [[None; 8]; 8];
+	let filt = |m: &Move| {
+		if let Some(bo) = arr[m.to.y][m.to.x]{
+			bo
+		}else{
+			let bo = ! b.is_threatened(&m.to);
+			arr[m.to.y][m.to.x] = Some(bo);
+			bo
+		}
+	};
+
+	let mut ms: Moves = ms.into_iter().filter(filt).collect();
+	if ms.len() == 0 { stand_pat }
+	else {
+		ms.sort_by_heuristic(White);
+		b.heuristic_value() + ms[0].heuristic_value()
+	}
+}
+
+fn quimin(b: &mut Board, alpha: Score) -> Score{
+	let stand_pat = b.heuristic_value();
+	if stand_pat <= alpha && ! b.is_check() { return stand_pat; }
+
+	let ms = b.moves();
+	if ms.len() == 0 { return b.end_score(); }
+
+	let mut arr = [[None; 8]; 8];
+	let filt = |m: &Move| {
+		if let Some(bo) = arr[m.to.y][m.to.x]{
+			bo
+		}else{
+			let bo = ! b.is_threatened(&m.to);
+			arr[m.to.y][m.to.x] = Some(bo);
+			bo
+		}
+	};
+
+	let mut ms: Moves = ms.into_iter().filter(filt).collect();
+	if ms.len() == 0 { stand_pat }
+	else {
+		ms.sort_by_heuristic(Black);
+		b.heuristic_value() + ms[0].heuristic_value()
 	}
 }
 

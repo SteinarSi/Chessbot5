@@ -47,6 +47,9 @@ impl MemoMap{
 	}
 
 	pub fn insert(&mut self, k: Key, value: Score, flag: TransFlag, depth: usize, best: Option<Move>){
+		if let Some(t) = self.map.get(&k){
+			if t.depth >= depth { return; }
+		}
 		self.map.insert(k, Transposition{value, flag, depth, best, age: ! self.delete});
 	}
 

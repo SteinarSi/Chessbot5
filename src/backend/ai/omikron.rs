@@ -30,11 +30,11 @@ impl AI for Omikron{
 		match self.database.get(&mut b){
 			Some(m) => m,
 			None    => {
-				//let tm = &mut self.memo as *mut MemoMap;
-				//unsafe {
-				//	multisearch(&mut b, Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, &mut self.time)
-				//}
-				
+				let tm = &mut self.memo as *mut MemoMap;
+				unsafe {
+					multisearch(&mut b, Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, &mut self.time)
+				}
+				/*
 				let time = Instant::now();
 				let mut d = 2;
 				while time.elapsed() < self.time && d <= self.depth {
@@ -58,44 +58,52 @@ impl AI for Omikron{
 		        //let ret =self.memo.get(&b.hash()).unwrap().best.unwrap();
 		        //self.memo = MemoMap::new();
 		      	//ret
-		      	
+		      	*/
 			}
 		}
 	}
 }
 
-fn multisearch(b: &mut Board, mut map: Arc<Mutex<&'static mut MemoMap>>, killerray: &Killerray, time: &Duration) -> Move{
-	let d = 8;
-	//let mut tmap = &mut map as *mut Arc<Mutex<&mut MemoMap>>;
-	let mut tb = b.clone();
-	let mut tk = killerray.clone();
-	unsafe{
-		//let mut tm = &mut *tmap;
+fn multisearch(b: &mut Board, mut map: Arc<Mutex<&'static mut MemoMap>>, killerray: &Killerray, stop: &Duration) -> Move{
+	let mut d = Arc::new(Mutex::new(2));
+	let start = Instant::now();
+	let mut handles = Vec::new();
+	for i in &[1, 1, 1, 1, 2, 2, 3, 4]{
 		let mut tb = b.clone();
 		let mut tk = killerray.clone();
 		let mut tm = Arc::clone(&map);
-		let handle1 = thread::spawn(move || maximize_alpha(&mut tb, - INFINITY, INFINITY, d, &mut tm, &mut tk));
-		/*let mut tb = b.clone();
-		let mut tk = killerray.clone();
-		let mut tm = Arc::clone(&map);
-		let handle2 = thread::spawn(move || maximize_alpha(&mut tb, - INFINITY, INFINITY, d, &mut tm, &mut tk));
-		let mut tb = b.clone();
-		let mut tk = killerray.clone();
-		let mut tm = Arc::clone(&map);
-		let handle3 = thread::spawn(move || maximize_alpha(&mut tb, - INFINITY, INFINITY, d+1, &mut tm, &mut tk));
-		let mut tb = b.clone();
-		let mut tk = killerray.clone();
-		let mut tm = Arc::clone(&map);
-		let handle4 = thread::spawn(move || maximize_alpha(&mut tb, - INFINITY, INFINITY, d+2, &mut tm, &mut tk));
-		handle1.join();
-		handle2.join();
-		handle3.join();
-		handle4.join();*/
-		handle1.join();
+		let mut td = Arc::clone(&d);
+		let tstop = stop.clone();
+		let handle = thread::spawn(move || {
+			while start.elapsed() < tstop{
+				let depth = *td.lock().unwrap() + i;
+				println!("Starter et søk på {}+{}={}", depth-i, i, depth);
+				if tb.color_to_move() == White{
+					maximize_alpha(&mut tb, - INFINITY, INFINITY, depth, &mut tm, &mut tk, &start, &tstop);
+				}else {
+					minimize_beta(&mut tb, - INFINITY, INFINITY, depth, &mut tm, &mut tk, &start, &tstop);
+				}
 
+				if start.elapsed() < tstop{
+					println!("Fullførte et søk på {}+{}={}", depth-i, i, depth);
+					let mut od = td.lock().unwrap();
+					if depth > *od{
+						*od = depth;
+					}
+				}else{
+					println!("Søk avbrutt på {}+{}={}", depth-i, i, depth);
+				}
+			}
+		});
+		handles.push(handle);
 	}
+	
+	for handle in handles{
+		handle.join().unwrap();
+	}
+	println!("Høyeste fullførte: {}", d.lock().unwrap());
 
-	map.lock().expect("Couldn't get arc value").get(&b.hash()).unwrap().best.unwrap()
+	map.lock().expect("Couldn't get arc value").get(&b.hash()).expect("This position hasn't been saved").best.expect("This position has no best move saved, despite being a PV node")
 }
 
 
@@ -437,7 +445,7 @@ impl Omikron{
 		bestscore
 	}
 }
-fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mut map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray) -> Score{
+fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mut map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, start: &Instant, stop: &Duration) -> Score{
 	if b.is_draw_by_repetition() { 
 		map.lock().expect("Couldn't get arc value").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 		return 0; 
@@ -467,7 +475,7 @@ fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mu
 	if let Some(m) = prev{
 		if b.is_legal(&m) {
 			b.move_piece(&m);
-			bestscore = minimize_beta(b, alpha, beta, depth-1, map, killerray);
+			bestscore = minimize_beta(b, alpha, beta, depth-1, map, killerray, start, stop);
 			b.go_back();
 
 			//Beta-cutoff, stillingen er uakseptabel for svart.
@@ -493,7 +501,7 @@ fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mu
 			m.set_heuristic_value(b.value_of(&m));
 			kill = Some(m);
 			b.move_piece(&m);
-			let value = minimize_beta(b, alpha, beta, depth-1, map, killerray);
+			let value = minimize_beta(b, alpha, beta, depth-1, map, killerray, start, stop);
 			b.go_back();
 
 			if value > bestscore{
@@ -525,7 +533,7 @@ fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mu
 	if prev == None && kill == None{
 		let m = iter.next().unwrap();
 		b.move_piece(&m);
-		let value = minimize_beta(b, alpha, beta, depth-1, map, killerray);
+		let value = minimize_beta(b, alpha, beta, depth-1, map, killerray, start, stop);
 		b.go_back();
 		if value > bestscore{
 			if value > alpha{
@@ -543,12 +551,12 @@ fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mu
 	}
 
 	for m in iter{
-		//if depth >= 6 && time.elapsed() >= time { return bestscore; } 
+		if depth >= 6 && &start.elapsed() >= stop { return bestscore; } 
 		if Some(m) == prev || Some(m) == kill { continue; }
 		b.move_piece(&m);
-		let mut value = minimize_beta(b, alpha, alpha+1, depth-1, map, killerray); //Null window
+		let mut value = minimize_beta(b, alpha, alpha+1, depth-1, map, killerray, start, stop); //Null window
 		if value > alpha && value < beta {
-			value = minimize_beta(b, alpha, beta, depth-1, map, killerray); //Re-search
+			value = minimize_beta(b, alpha, beta, depth-1, map, killerray, start, stop); //Re-search
 			if value > alpha{
 				alpha = value;
 				exact = true;
@@ -571,7 +579,7 @@ fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mu
 	bestscore
 }
 
-fn minimize_beta(b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, mut map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray) -> Score{
+fn minimize_beta(b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, mut map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, start: &Instant, stop: &Duration) -> Score{
 	if b.is_draw_by_repetition() { 
 		map.lock().expect("Couldn't get arc value").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 		return 0; 
@@ -598,7 +606,7 @@ fn minimize_beta(b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize,
 	if let Some(m) = prev{
 		if b.is_legal(&m){
 			b.move_piece(&m);
-			bestscore = maximize_alpha(b, alpha, beta, depth-1, map, killerray);
+			bestscore = maximize_alpha(b, alpha, beta, depth-1, map, killerray, start, stop);
 			b.go_back();
 
 			if bestscore <= alpha{
@@ -620,7 +628,7 @@ fn minimize_beta(b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize,
 			m.set_heuristic_value(b.value_of(&m));
 			kill = Some(m);
 			b.move_piece(&m);
-			let value = maximize_alpha(b, alpha, beta, depth-1, map, killerray);
+			let value = maximize_alpha(b, alpha, beta, depth-1, map, killerray, start, stop);
 			b.go_back();
 
 			if value < bestscore{
@@ -647,7 +655,7 @@ fn minimize_beta(b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize,
 	if prev.is_none() && kill.is_none(){
 		let m = iter.next().unwrap();
 		b.move_piece(&m);
-		let value = maximize_alpha(b, alpha, beta, depth-1, map, killerray);
+		let value = maximize_alpha(b, alpha, beta, depth-1, map, killerray, start, stop);
 		b.go_back();
 
 		if value < bestscore{
@@ -666,12 +674,12 @@ fn minimize_beta(b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize,
 	}
 
 	for m in iter{
-		//if depth >= 6 && time.elapsed() >= self.time { return bestscore; }
+		if depth >= 6 && &start.elapsed() >= stop { return bestscore; }
 		if Some(m) == prev || Some(m) == kill { continue; }
 		b.move_piece(&m);
-		let mut value = maximize_alpha(b, beta-1, beta, depth-1, map, killerray);
+		let mut value = maximize_alpha(b, beta-1, beta, depth-1, map, killerray, start, stop);
 		if value > alpha && value < beta{
-			value = maximize_alpha(b, alpha, beta, depth-1, map, killerray);
+			value = maximize_alpha(b, alpha, beta, depth-1, map, killerray, start, stop);
 			if value < beta{
 				beta = value;
 				exact = true;

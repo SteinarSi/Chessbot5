@@ -13,7 +13,7 @@ impl Gameboard{
 		Gameboard{ai: Box::new(Omikron::new()), board: Board::new()}
 	}
 
-	pub fn move_piece(&mut self, s: &str) -> Option<()>{
+	pub fn move_piece(&mut self, s: &str) -> Result<(), std::io::Error>{
 		self.board.move_str(s)
 	}
 

@@ -30,11 +30,11 @@ impl AI for Omikron{
 		match self.database.get(&mut b){
 			Some(m) => m,
 			None    => {
-				let tm = &mut self.memo as *mut MemoMap;
-				unsafe {
-					multisearch(&mut b, Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, &mut self.time)
-				}
-				/*
+				//let tm = &mut self.memo as *mut MemoMap;
+				//unsafe {
+				//	multisearch(&mut b, Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, &mut self.time)
+				//}
+				
 				let time = Instant::now();
 				let mut d = 2;
 				while time.elapsed() < self.time && d <= self.depth {
@@ -58,21 +58,20 @@ impl AI for Omikron{
 		        //let ret =self.memo.get(&b.hash()).unwrap().best.unwrap();
 		        //self.memo = MemoMap::new();
 		      	//ret
-		      	*/
 			}
 		}
 	}
 }
 
-fn multisearch(b: &mut Board, mut map: Arc<Mutex<&'static mut MemoMap>>, killerray: &Killerray, stop: &Duration) -> Move{
-	let mut d = Arc::new(Mutex::new(2));
+fn multisearch(b: &mut Board, map: Arc<Mutex<&'static mut MemoMap>>, killerray: &Killerray, stop: &Duration) -> Move{
+	let d = Arc::new(Mutex::new(2));
 	let start = Instant::now();
 	let mut handles = Vec::new();
 	for i in &[1, 1, 1, 1, 2, 2, 3, 4]{
 		let mut tb = b.clone();
 		let mut tk = killerray.clone();
 		let mut tm = Arc::clone(&map);
-		let mut td = Arc::clone(&d);
+		let td = Arc::clone(&d);
 		let tstop = stop.clone();
 		let handle = thread::spawn(move || {
 			while start.elapsed() < tstop{
@@ -191,7 +190,7 @@ impl Omikron{
 
 	}
 
-	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
+	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, beta: Score, depth: usize, time: &Instant) -> Score{
 		if b.is_draw_by_repetition() { 
 			self.memo.insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 			return 0; 
@@ -325,7 +324,7 @@ impl Omikron{
 		bestscore
 	}
 
-	fn minimize_beta(&mut self, b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
+	fn minimize_beta(&mut self, b: &mut Board, alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
 		if b.is_draw_by_repetition() { 
 			self.memo.insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 			return 0; 
@@ -445,7 +444,7 @@ impl Omikron{
 		bestscore
 	}
 }
-fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mut map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, start: &Instant, stop: &Duration) -> Score{
+fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, start: &Instant, stop: &Duration) -> Score{
 	if b.is_draw_by_repetition() { 
 		map.lock().expect("Couldn't get arc value").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 		return 0; 
@@ -579,7 +578,7 @@ fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, mu
 	bestscore
 }
 
-fn minimize_beta(b: &mut Board, mut alpha: Score, mut beta: Score, depth: usize, mut map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, start: &Instant, stop: &Duration) -> Score{
+fn minimize_beta(b: &mut Board, alpha: Score, mut beta: Score, depth: usize, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, start: &Instant, stop: &Duration) -> Score{
 	if b.is_draw_by_repetition() { 
 		map.lock().expect("Couldn't get arc value").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 		return 0; 

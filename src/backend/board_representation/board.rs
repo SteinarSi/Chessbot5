@@ -6,6 +6,7 @@ use super::movement::{Position, INFINITY};
 use std::fmt;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
+use std::io::{Error, ErrorKind};
 
 const BOARD_SIZE: usize = 8;
 const DEFAULT_BOARD: &str = "\
@@ -171,11 +172,11 @@ impl Board{
 	// Om strengen ikke er på gyldig format skjer ingenting.
 	// Om strenger er gyldig, men trekket er ikke det, skjer det heller ingenting.
 	// Om trekket er gyldig blir det utført.
-	pub fn move_str(&mut self, s: &str) -> Option<()>{
+	pub fn move_str(&mut self, s: &str) -> Result<(), Error>{
 		let m1 = Move::from_str(s)?;
-		let m2 = self.moves().into_iter().find(|m2| *m2 == m1)?;
-		self.move_piece(&m2);
-		Some(())
+		let m2 = self.moves().into_iter().find(|m2| *m2 == m1).ok_or(Error::new(ErrorKind::Other, "Not a legal move"));
+		self.move_piece(&m2.unwrap());
+		Ok(())
 	}
 
 	//En noenlunde effektiv funskjon for å sjekke om et trekk er lovlig eller ei.

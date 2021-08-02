@@ -1,6 +1,7 @@
 //Denne filen skulle gjerne hett move.rs, men move er allerede et nøkkelord i Rust og kan ikke brukes :(((
 use std::fmt;
 use std::char;
+use std::io::{Error, ErrorKind};
 use std::iter::FromIterator;
 use std::ops::Index;
 use rand::thread_rng;
@@ -36,19 +37,19 @@ impl Move{
 
 	//Parser en streng på formen "e2e4". "e4", "e2-e4", "Pe4" er ikke gyldig og gir None.
 	//For å promotere, legg til en karakter om hvilken brikke du vil promotere til på slutten, f. eks "b7a8Q".
-	pub fn from_str(s: &str) -> Option<Move>{
+	pub fn from_str(s: &str) -> Result<Move, Error>{
 		let mut l = s.chars();
-		let filefrom = l.next()? as i32 - 97;
-		let rankfrom = 56 - l.next()? as i32;
-		let fileto   = l.next()? as i32 - 97;
-		let rankto   = 56 - l.next()? as i32;
-		if [filefrom, rankfrom, fileto, rankto].iter().any(|i| i < &0 || i >= &8) { return None; }
+		let filefrom = l.next().ok_or_else(|| format!("Couldn't read the first character in {}, expected a-h ", s)).unwrap() as i32 - 97;
+		let rankfrom = 56 - l.next().ok_or_else(|| format!("Couldn't read the second character in {}, expected 1-8", s)).unwrap() as i32;
+		let fileto   = l.next().ok_or_else(|| format!("Couldn't read the third character in {}, expected a-h ", s)).unwrap() as i32 - 97;
+		let rankto   = 56 - l.next().ok_or_else(|| format!("Couldn't read the fouth character in {}, expected 1-8", s)).unwrap() as i32;
+		if [filefrom, rankfrom, fileto, rankto].iter().any(|i| i < &0 || i >= &8) { return Err(Error::new(ErrorKind::Other, "Characters in a move have to be a-h or 1-8")); }
 		match l.next(){
-			None => Some(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, None, 0)),
+			None => Ok(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, None, 0)),
 			Some(c) => {
 				if "RNBQrnbq".to_string().chars().any(|p| p == c) { 
-					Some(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, Piece::new(c), 0))
-			 	}else{ None }
+					Ok(Move::new(filefrom as usize, rankfrom as usize, fileto as usize, rankto as usize, Piece::new(c), 0))
+			 	}else{ Err(Error::new(ErrorKind::Other, "Bruh")) }
 			}
 		}
 	}

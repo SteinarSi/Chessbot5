@@ -89,9 +89,9 @@ mod database_tests{
 	fn database_contains_good_moves_only(){
 		let mut b = Board::new();
 		let d = Database::new();
-		b.move_str("c2c4");
-		b.move_str("e7e5");
-		b.move_str("b1c3");
+		b.move_str("c2c4").unwrap();
+		b.move_str("e7e5").unwrap();
+		b.move_str("b1c3").unwrap();
 
 		let expected: Moves = ["g8f6", "f8b4", "d7d6", "b8c6", "f7f5"].iter().map(|m| Move::from_str(m).unwrap()).collect();
 

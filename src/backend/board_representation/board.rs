@@ -174,8 +174,8 @@ impl Board{
 	// Om trekket er gyldig blir det utført.
 	pub fn move_str(&mut self, s: &str) -> Result<(), Error>{
 		let m1 = Move::from_str(s)?;
-		let m2 = self.moves().into_iter().find(|m2| *m2 == m1).ok_or(Error::new(ErrorKind::Other, "Not a legal move"));
-		self.move_piece(&m2.unwrap());
+		let m2 = self.moves().into_iter().find(|m2| *m2 == m1).ok_or(Error::new(ErrorKind::Other, "Not a legal move"))?;
+		self.move_piece(&m2);
 		Ok(())
 	}
 
@@ -955,18 +955,18 @@ mod score_test{
 		let mut board = Board::new();
 		assert_eq!(0, board.heuristic_value());
 
-		board.move_str("e2e4");
-		board.move_str("e7e5");
+		board.move_str("e2e4").unwrap();
+		board.move_str("e7e5").unwrap();
+	    
+		assert_eq!(0, board.heuristic_value());
+
+		board.move_str("b1c3").unwrap();
+		board.move_str("b8c6").unwrap();
 
 		assert_eq!(0, board.heuristic_value());
 
-		board.move_str("b1c3");
-		board.move_str("b8c6");
-
-		assert_eq!(0, board.heuristic_value());
-
-		board.move_str("f1c5");
-		board.move_str("f8c4");
+		board.move_str("f1c4").unwrap();
+		board.move_str("f8c5").unwrap();
 
 		assert_eq!(0, board.heuristic_value());
 	}
@@ -1012,18 +1012,18 @@ RNBQKBNR";
 		let mut b = Board::new();
 		assert_eq!(2, b.queens[b.counter]);
 
-		b.move_str("e2e4");
-		b.move_str("e7e5");
-		b.move_str("d1f3");
-		b.move_str("d8f6");
+		b.move_str("e2e4").unwrap();
+		b.move_str("e7e5").unwrap();
+		b.move_str("d1f3").unwrap();
+		b.move_str("d8f6").unwrap();
 		assert_eq!(2, b.queens[b.counter]);
 
-		b.move_str("f3f6");
+		b.move_str("f3f6").unwrap();
 		assert_eq!(1, b.queens[b.counter]);
 
 		assert!( ! b.is_endgame());
 
-		b.move_str("g8f6");
+		b.move_str("g8f6").unwrap();
 		assert_eq!(0, b.queens[b.counter]);
 
 		assert!(b.is_endgame());
@@ -1038,12 +1038,12 @@ RNBQKBNR";
 	#[test]
 	fn ba6(){
 		let mut b = Board::new();
-		b.move_str("e2e3");
-		b.move_str("b7b6");
-		b.move_str("f2f4");
-		b.move_str("h7h6");
-		b.move_str("f1e2");
-		b.move_str("a7a5");
+		b.move_str("e2e3").unwrap();
+		b.move_str("b7b6").unwrap();
+		b.move_str("f2f4").unwrap();
+		b.move_str("h7h6").unwrap();
+		b.move_str("f1e2").unwrap();
+		b.move_str("a7a5").unwrap();
 		let mut m = Move::from_str("e2a6").unwrap();
 		m.set_heuristic_value(b.value_of(&m));
 		assert!(b.moves().contains(&m));
@@ -1116,10 +1116,10 @@ mod threat_test{
 	#[test]
 	fn fools_mate(){
 		let mut board = Board::new();
-		board.move_str("f2f3");
-		board.move_str("e7e5");
-		board.move_str("g2g4");
-		board.move_str("d8h4");
+		board.move_str("f2f3").unwrap();
+		board.move_str("e7e5").unwrap();
+		board.move_str("g2g4").unwrap();
+		board.move_str("d8h4").unwrap();
 
 		assert!(board.is_checkmate());
 		assert_eq!(board.winner(), Some(Black));
@@ -1128,13 +1128,13 @@ mod threat_test{
 	#[test]
 	fn scholars_mate(){
 		let mut board = Board::new();
-		board.move_str("e2e4");
-		board.move_str("e7e5");
-		board.move_str("f1c4");
-		board.move_str("b8c6");
-		board.move_str("d1h5");
-		board.move_str("g8f6");
-		board.move_str("h5f7");
+		board.move_str("e2e4").unwrap();
+		board.move_str("e7e5").unwrap();
+		board.move_str("f1c4").unwrap();
+		board.move_str("b8c6").unwrap();
+		board.move_str("d1h5").unwrap();
+		board.move_str("g8f6").unwrap();
+		board.move_str("h5f7").unwrap();
 
 		println!("{}", board.to_string());
 
@@ -1254,13 +1254,13 @@ mod pawn_tests{
 
 		assert_eq!(b1, b2);
 
-		b1.move_str("b7b5");
-		b2.move_str("b7b6");
+		b1.move_str("b7b5").unwrap();
+		b2.move_str("b7b6").unwrap();
 
 		assert_ne!(b1, b2);
 
-		b1.move_str("a5b6");
-		b2.move_str("a5b6");
+		b1.move_str("a5b6").unwrap();
+		b2.move_str("a5b6").unwrap();
 
 		assert_eq!(b1.grid, b2.grid);
 		assert_eq!(b1.heuristic_value(), b2.heuristic_value());
@@ -1314,7 +1314,7 @@ mod pawn_tests{
 
 		assert_eq!(board, copy);
 
-		board.move_str("a7b8Q");
+		board.move_str("a7b8Q").unwrap();
 
 		assert_ne!(board, copy);
 		assert_eq!(board.get_reference_at(0, 1), &None);
@@ -1326,7 +1326,6 @@ mod pawn_tests{
 		assert_eq!(board.get_reference_at(0, 1), &Piece::new('P'));
 		assert_eq!(board.get_reference_at(1, 0), &Piece::new('r'));
 	}
-
 }
 
 #[cfg(test)]
@@ -1453,36 +1452,35 @@ R---K--R";
 	#[test]
 	fn castling_also_moves_the_rook(){
 		let mut board = Board::custom(SIMPLE, White);
-		println!("1\n{}", board.to_string());
+		
 		board.move_piece(&Move::from_str("e1g1").unwrap());
 		assert_eq!(board.get_reference_at(4, 7), &None);
 		assert_eq!(board.get_reference_at(7, 7), &None);
 		assert_eq!(board.get_reference_at(6, 7), &Piece::new('K'));
 		assert_eq!(board.get_reference_at(5, 7), &Piece::new('R'));
-		println!("2\n{}", board.to_string());
+		
 		board.move_piece(&Move::from_str("e8c8").unwrap());
 		assert_eq!(board.get_reference_at(0, 0), &None);
 		assert_eq!(board.get_reference_at(1, 0), &None);
 		assert_eq!(board.get_reference_at(4, 0), &None);
 		assert_eq!(board.get_reference_at(3, 0), &Piece::new('r'));
 		assert_eq!(board.get_reference_at(2, 0), &Piece::new('k'));
-		println!("3\n{}", board.to_string());
+		
 		board.go_back();
-		println!("3.5\n{}", board.to_string());
 		board.go_back();
-		println!("4\n{}", board.to_string());
+		
 		assert_eq!(board.get_reference_at(4, 7), &Piece::new('K'));
 		assert_eq!(board.get_reference_at(7, 7), &Piece::new('R'));
 		assert_eq!(board.get_reference_at(6, 7), &None);
 		assert_eq!(board.get_reference_at(5, 7), &None);
-		println!("5\n{}", board.to_string());
+		
 		board.move_piece(&Move::from_str("e1c1").unwrap());
 		assert_eq!(board.get_reference_at(0, 7), &None);
 		assert_eq!(board.get_reference_at(1, 7), &None);
 		assert_eq!(board.get_reference_at(2, 7), &Piece::new('K'));
 		assert_eq!(board.get_reference_at(3, 7), &Piece::new('R'));
 		assert_eq!(board.get_reference_at(4, 7), &None);
-		println!("6\n{}", board.to_string());
+		
 		board.move_piece(&Move::from_str("e8g8").unwrap());
 		assert_eq!(board.get_reference_at(7, 0), &None);
 		assert_eq!(board.get_reference_at(4, 0), &None);
@@ -1663,7 +1661,7 @@ mod zobrist_testing{
 	fn moving_piece_changes_hash(){
 		let mut board = Board::new();
 		let hash1 = board.hash();
-		board.move_str("e2e4");
+		board.move_str("e2e4").unwrap();
 		let hash2 = board.hash();
 
 		assert_ne!(hash1, hash2);
@@ -1674,15 +1672,15 @@ mod zobrist_testing{
 		let mut board1 = Board::new();
 		let mut board2 = Board::new();
 
-		board1.move_str("e2e4");
-		board1.move_str("e7e5");
-		board1.move_str("d2d4");
-		board1.move_str("b8c6");
+		board1.move_str("e2e4").unwrap();
+		board1.move_str("e7e5").unwrap();
+		board1.move_str("d2d4").unwrap();
+		board1.move_str("b8c6").unwrap();
 
-		board2.move_str("d2d4");
-		board2.move_str("e7e5");
-		board2.move_str("e2e4");
-		board2.move_str("b8c6");
+		board2.move_str("d2d4").unwrap();
+		board2.move_str("e7e5").unwrap();
+		board2.move_str("e2e4").unwrap();
+		board2.move_str("b8c6").unwrap();
 
 		println!("{}{}", board1.to_string(), board2.to_string());
 		assert_eq!(board1.grid, board2.grid);
@@ -1694,17 +1692,17 @@ mod zobrist_testing{
 		let mut board1 = Board::new();
 		let mut board2 = Board::new();
 
-		board1.move_str("e2e4");
-		board1.move_str("e7e5");
-		board1.move_str("e1e2");
-		board1.move_str("b8c6");
-		board1.move_str("e2e1");
+		board1.move_str("e2e4").unwrap();
+		board1.move_str("e7e5").unwrap();
+		board1.move_str("e1e2").unwrap();
+		board1.move_str("b8c6").unwrap();
+		board1.move_str("e2e1").unwrap();
 
-		board2.move_str("e2e4");
-		board2.move_str("e7e5");
-		board2.move_str("d1e2");
-		board2.move_str("b8c6");
-		board2.move_str("e2d1");
+		board2.move_str("e2e4").unwrap();
+		board2.move_str("e7e5").unwrap();
+		board2.move_str("d1e2").unwrap();
+		board2.move_str("b8c6").unwrap();
+		board2.move_str("e2d1").unwrap();
 
 		assert_eq!(board1.grid, board2.grid); 		//Stillingen ser lik ut, men
 		assert_ne!(board1.hash(), board2.hash()) 	//det første brettet kan ikke lenger rokere med hvit
@@ -1713,13 +1711,13 @@ mod zobrist_testing{
 	fn moving_back_gives_same_hash(){
 		let mut board = Board::new();
 		let hash1 = board.hash();
-		board.move_str("b1c3");
-		board.move_str("g8f6");
+		board.move_str("b1c3").unwrap();
+		board.move_str("g8f6").unwrap();
 
 		let hash2 = board.hash();
 
-		board.move_str("c3b1");
-		board.move_str("f6g8");
+		board.move_str("c3b1").unwrap();
+		board.move_str("f6g8").unwrap();
 
 		let hash3 = board.hash();
 
@@ -1743,14 +1741,14 @@ RNBQKBNR";
 
 		assert_ne!(board1.hash(), board2.hash());
 
-		board1.move_str("h2h4");
-		board2.move_str("h3h4");
+		board1.move_str("h2h4").unwrap();
+		board2.move_str("h3h4").unwrap();
 
 		assert_eq!(board1.grid, board2.grid);
 		assert_ne!(board1.hash(), board2.hash());
 
-		board1.move_str("a7a6");
-		board2.move_str("a7a6");
+		board1.move_str("a7a6").unwrap();
+		board2.move_str("a7a6").unwrap();
 
 		assert_eq!(board1.hash(), board2.hash());
 	}
@@ -1760,27 +1758,27 @@ RNBQKBNR";
 		let mut french = Board::new();
 		let mut petrov = Board::new();
 
-		french.move_str("e2e4");
-		french.move_str("e7e6");
-		french.move_str("d2d4");
-		french.move_str("d7d5");		
-		french.move_str("e4d5");
-		french.move_str("e6d5");
-		french.move_str("g1f3");
-		french.move_str("g8f6");
+		french.move_str("e2e4").unwrap();
+		french.move_str("e7e6").unwrap();
+		french.move_str("d2d4").unwrap();
+		french.move_str("d7d5").unwrap();		
+		french.move_str("e4d5").unwrap();
+		french.move_str("e6d5").unwrap();
+		french.move_str("g1f3").unwrap();
+		french.move_str("g8f6").unwrap();
 
-		petrov.move_str("e2e4");
-		petrov.move_str("e7e5");
-		petrov.move_str("g1f3");
-		petrov.move_str("g8f6");
-		petrov.move_str("f3e5");
-		petrov.move_str("d7d6");
-		petrov.move_str("e5f3");
-		petrov.move_str("f6e4");
-		petrov.move_str("d2d3");
-		petrov.move_str("e4f6");
-		petrov.move_str("d3d4");
-		petrov.move_str("d6d5");
+		petrov.move_str("e2e4").unwrap();
+		petrov.move_str("e7e5").unwrap();
+		petrov.move_str("g1f3").unwrap();
+		petrov.move_str("g8f6").unwrap();
+		petrov.move_str("f3e5").unwrap();
+		petrov.move_str("d7d6").unwrap();
+		petrov.move_str("e5f3").unwrap();
+		petrov.move_str("f6e4").unwrap();
+		petrov.move_str("d2d3").unwrap();
+		petrov.move_str("e4f6").unwrap();
+		petrov.move_str("d3d4").unwrap();
+		petrov.move_str("d6d5").unwrap();
 
 		assert_ne!(french, petrov);
 		assert_eq!(french.hash(), petrov.hash());
@@ -1791,11 +1789,11 @@ RNBQKBNR";
         let mut b = Board::new();
 
         for s in &["b1c3", "g8f6", "c3b1", "f6g8", "b1c3", "g8f6", "c3b1"]{
-            b.move_str(s);
+            b.move_str(s).unwrap();
             assert!( ! b.is_draw_by_repetition());
         }
 
-        b.move_str("f6g8");
+        b.move_str("f6g8").unwrap();
         assert!(b.is_draw_by_repetition());
 
         b.go_back();

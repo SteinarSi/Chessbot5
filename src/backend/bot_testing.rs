@@ -1,13 +1,13 @@
 use crate::backend::board_representation::{board::*};
 use crate::backend::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::AlphaBeta, 
             memoalpha::MemoAlpha, alphakiller::AlphaKiller, quiescence::Quiescence,
-            pvs::PVS, iddfs::IDDFS, omikron::Omikron};
+            pvs::PVS, iddfs::IDDFS, omikron::Omikron, splitter::Splitter};
 use std::io;
 
 pub fn test_bot(){
     //simulate_from(&mut Omikron::new(), s, Black, 99);
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
-    simulate(&mut Omikron::new(), 99);
+    simulate(&mut Splitter::new(), 99);
     //play_against(&mut IDDFS::new(), 99, White);
     //play_against(&mut Omikron::new(), 99, White);
     //vs(&mut Omikron::new(), 9, &mut MemoMax::new(), 4);

@@ -30,11 +30,11 @@ impl AI for Omikron{
 		match self.database.get(&mut b){
 			Some(m) => m,
 			None    => {
-				//let tm = &mut self.memo as *mut MemoMap;
-				//unsafe {
-				//	multisearch(&mut b, Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, &mut self.time)
-				//}
-				
+				let tm = &mut self.memo as *mut MemoMap;
+				unsafe {
+					multisearch(&mut b, Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, &mut self.time)
+				}
+				/*
 				let time = Instant::now();
 				let mut d = 2;
 				while time.elapsed() < self.time && d <= self.depth {
@@ -58,6 +58,7 @@ impl AI for Omikron{
 		        //let ret =self.memo.get(&b.hash()).unwrap().best.unwrap();
 		        //self.memo = MemoMap::new();
 		      	//ret
+		      	*/
 			}
 		}
 	}

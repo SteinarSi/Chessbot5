@@ -34,10 +34,10 @@ impl AI for Splitter{
 				let mut d = 2;
 				while time.elapsed() < self.time && d <= self.depth{
 					if b.color_to_move() == White{
-						maximize_alpha(&mut b, &mut Arc::new(Mutex::new(&mut self.memo)), - INFINITY, INFINITY, d, &time, &self.time, true);
+						maximize_alpha(&mut b, &mut Arc::new(Mutex::new(&mut self.memo)), &mut self.killerray, - INFINITY, INFINITY, d, &time, &self.time, true);
 					}
 					else{
-						minimize_beta(&mut b, &mut Arc::new(Mutex::new(&mut self.memo)), - INFINITY, INFINITY, d, &time, &self.time, true);
+						minimize_beta(&mut b, &mut Arc::new(Mutex::new(&mut self.memo)), &mut self.killerray, - INFINITY, INFINITY, d, &time, &self.time, true);
 					}
 					d += 1;
 				}
@@ -174,7 +174,7 @@ fn quimin(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score) -> Sc
 
 }
 
-fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, mut alpha: Score, mut beta: Score, depth: usize, time: &Instant, stop: &Duration, is_pv: bool) -> Score{
+fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, mut alpha: Score, beta: Score, depth: usize, time: &Instant, stop: &Duration, is_pv: bool) -> Score{
 	if b.is_draw_by_repetition() { 
 		map.lock().expect("Couldn't get arc value.").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 		return 0; 
@@ -204,12 +204,12 @@ fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, mut alpha: 
 	if let Some(m) = prev {
 		if b.is_legal(&m) {
 			b.move_piece(&m);
-			bestscore = minimize_beta(b, map, alpha, beta, depth-1, time, stop, is_pv);
+			bestscore = minimize_beta(b, map, killerray, alpha, beta, depth-1, time, stop, is_pv);
 			b.go_back();
 
 			//Beta-cutoff, stillingen er uakseptabel for svart.
 			if bestscore >= beta{
-				//self.killerray.put(m.clone(), b.counter());
+				killerray.put(m.clone(), b.counter());
 				map.lock().expect("Couldn't get arc value.").insert(b.hash(), bestscore, TransFlag::LOWER_BOUND, depth, Some(m));
 				return bestscore;
 			}
@@ -222,15 +222,15 @@ fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, mut alpha: 
 			}
 		}
 	}
-/*
+
 	//Sjekker om vi har et 'Killer Move' for denne dybden.
 	//Da evaluerer vi det trekket først.
-	if let Some(mut m) = self.killerray.get(b.counter()){
+	if let Some(mut m) = killerray.get(b.counter()){
 		if b.is_legal(&m) && Some(m) != prev{
 			m.set_heuristic_value(b.value_of(&m));
 			kill = Some(m);
 			b.move_piece(&m);
-			let value = self.minimize_beta(b, alpha, beta, depth-1, time);
+			let value = minimize_beta(b, map, killerray, alpha, beta, depth-1, time, stop, is_pv);
 			b.go_back();
 
 			if value > bestscore{
@@ -250,7 +250,7 @@ fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, mut alpha: 
 			}
 		}
 	}
-*/
+
 	// Først her, når vi allerede har vurdert eventuelle 'Killer'-trekk og memoiserte trekk,
 	// begynner vi å generere listen av alle trekk og evaluerer dem.
 	let mut ms = b.moves();
@@ -268,12 +268,12 @@ fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, mut alpha: 
 	if prev.is_none() && kill.is_none(){
 		let m = iter.next().unwrap();
 		b.move_piece(&m);
-		let value = minimize_beta(b, map, alpha, beta, depth-1, time, stop, is_pv);
+		let value = minimize_beta(b, map, killerray, alpha, beta, depth-1, time, stop, is_pv);
 		b.go_back();
 		if value > bestscore{
 			if value > alpha{
 				if value >= beta{
-					//self.killerray.put(m.clone(), b.counter());
+					killerray.put(m.clone(), b.counter());
 					map.lock().expect("Couldn't get arc value.").insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 					return value;
 				}
@@ -289,9 +289,9 @@ fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, mut alpha: 
 		if depth >= 6 && &time.elapsed() >= stop { return bestscore; } 
 		if Some(m) == prev || Some(m) == kill { continue; }
 		b.move_piece(&m);
-		let mut value = minimize_beta(b, map, alpha, alpha+1, depth-1, time, stop, false); //Null window
+		let mut value = minimize_beta(b, map, killerray, alpha, alpha+1, depth-1, time, stop, false); //Null window
 		if value > alpha && value < beta {
-			value = minimize_beta(b, map, alpha, beta, depth-1, time, stop, false); //Re-search
+			value = minimize_beta(b, map, killerray, alpha, beta, depth-1, time, stop, false); //Re-search
 			if value > alpha{
 				alpha = value;
 				exact = true;
@@ -303,7 +303,7 @@ fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, mut alpha: 
 		if value > bestscore{
 			bestscore = value;
 			if value >= beta{
-				//self.killerray.put(m.clone(), b.counter());
+				killerray.put(m.clone(), b.counter());
 				map.lock().expect("Couldn't get arc value.").insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
 				return value;
 			}
@@ -314,7 +314,7 @@ fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, mut alpha: 
 	bestscore
 }
 
-fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score, mut beta: Score, depth: usize, time: &Instant, stop: &Duration, is_pv: bool) -> Score{
+fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, alpha: Score, mut beta: Score, depth: usize, time: &Instant, stop: &Duration, is_pv: bool) -> Score{
 	if b.is_draw_by_repetition() { 
 		map.lock().expect("Couldn't get arc value.").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 		return 0; 
@@ -340,11 +340,11 @@ fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score
 	if let Some(m) = prev{
 		if b.is_legal(&m){
 			b.move_piece(&m);
-			bestscore = maximize_alpha(b, map, alpha, beta, depth-1, time, stop, is_pv);
+			bestscore = maximize_alpha(b, map, killerray, alpha, beta, depth-1, time, stop, is_pv);
 			b.go_back();
 
 			if bestscore <= alpha{
-				//self.killerray.put(m, b.counter());
+				killerray.put(m, b.counter());
 				map.lock().expect("Couldn't get arc value.").insert(b.hash(), bestscore, TransFlag::UPPER_BOUND, depth, Some(m));
 				return bestscore;
 			}
@@ -356,13 +356,13 @@ fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score
 			}
 		}
 	}
-	/*
-	if let Some(mut m) = self.killerray.get(b.counter()){
+	
+	if let Some(mut m) = killerray.get(b.counter()){
 		if b.is_legal(&m) && Some(m) != prev{
 			m.set_heuristic_value(b.value_of(&m));
 			kill = Some(m);
 			b.move_piece(&m);
-			let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
+			let value = maximize_alpha(b, map, killerray, alpha, beta, depth-1, time, stop, is_pv);
 			b.go_back();
 
 			if value < bestscore{
@@ -380,7 +380,6 @@ fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score
 			}
 		}
 	}
-	*/
 
 	let mut ms = b.moves();
 	if ms.len() == 0 { 
@@ -394,13 +393,13 @@ fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score
 	if prev.is_none() && kill.is_none(){
 		let m = iter.next().unwrap();
 		b.move_piece(&m);
-		let value = maximize_alpha(b, map, alpha, beta, depth-1, time, stop, is_pv);
+		let value = maximize_alpha(b, map, killerray, alpha, beta, depth-1, time, stop, is_pv);
 		b.go_back();
 
 		if value < bestscore{
 			if value < beta{
 				if value <= alpha{
-					//self.killerray.put(m.clone(), b.counter());
+					killerray.put(m.clone(), b.counter());
 					map.lock().expect("Couldn't get arc value.").insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
 					return value;
 				}
@@ -416,9 +415,9 @@ fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score
 		if depth >= 6 && &time.elapsed() >= stop { return bestscore; }
 		if Some(m) == prev || Some(m) == kill { continue; }
 		b.move_piece(&m);
-		let mut value = maximize_alpha(b, map, beta-1, beta, depth-1, time, stop, false);
+		let mut value = maximize_alpha(b, map, killerray, beta-1, beta, depth-1, time, stop, false);
 		if value > alpha && value < beta{
-			value = maximize_alpha(b, map, alpha, beta, depth-1, time, stop, false);
+			value = maximize_alpha(b, map, killerray, alpha, beta, depth-1, time, stop, false);
 			if value < beta{
 				beta = value;
 				exact = true;
@@ -428,7 +427,7 @@ fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score
 		b.go_back();
 		if value < bestscore{
 			if value <= alpha{
-				//self.killerray.put(m, depth);
+				killerray.put(m, depth);
 				map.lock().expect("Couldn't get arc value.").insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
 				return value;
 			}

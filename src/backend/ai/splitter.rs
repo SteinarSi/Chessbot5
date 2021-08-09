@@ -2,7 +2,7 @@ use crate::backend::board_representation::{movement::*, board::*};
 use super::structures::{memomap::*, killerray::*, database::*};
 use super::interface::AI;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, mpsc};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -30,23 +30,28 @@ impl AI for Splitter{
 		match self.database.get(&mut b){
 			Some(m) => m,
 			None    => {
+				panic!();
+				/*
 				let time = Instant::now();
 				let mut d = 2;
-				while time.elapsed() < self.time && d <= self.depth{
-					if b.color_to_move() == White{
-						maximize_alpha(&mut b, &mut Arc::new(Mutex::new(&mut self.memo)), &mut self.killerray, - INFINITY, INFINITY, d, &time, &self.time, true);
+				let tm = &mut self.memo as *mut MemoMap;
+				unsafe{
+					while time.elapsed() < self.time && d <= self.depth{
+						if b.color_to_move() == White{
+							maximize_alpha(&mut b, &mut Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, - INFINITY, INFINITY, d, &time, &self.time, true);
+						}
+						else{
+							minimize_beta(&mut b, &mut Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, - INFINITY, INFINITY, d, &time, &self.time, true);
+						}
+						d += 1;
 					}
-					else{
-						minimize_beta(&mut b, &mut Arc::new(Mutex::new(&mut self.memo)), &mut self.killerray, - INFINITY, INFINITY, d, &time, &self.time, true);
-					}
-					d += 1;
 				}
 				println!("Depth reached: {}", d-1);
 				println!("{:?}", self.principal_variation(b.clone()));
 				let mem = self.memo.get(&b.hash()).unwrap();
 				println!("Expected value: {}, {:?}", mem.value, mem.flag);
 				self.memo.clean();
-		        self.memo.get(&b.hash()).unwrap().best.unwrap()
+		        self.memo.get(&b.hash()).unwrap().best.unwrap()*/
 			}
 		}
 	}
@@ -174,7 +179,7 @@ fn quimin(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, alpha: Score) -> Sc
 
 }
 
-fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, mut alpha: Score, beta: Score, depth: usize, time: &Instant, stop: &Duration, is_pv: bool) -> Score{
+fn maximize_alpha(b: &'static mut Board, map: &'static mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, mut alpha: Score, beta: Score, depth: usize, time: &Instant, stop: &Duration, is_pv: bool) -> Score{
 	if b.is_draw_by_repetition() { 
 		map.lock().expect("Couldn't get arc value.").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 		return 0; 
@@ -285,36 +290,72 @@ fn maximize_alpha(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: 
 		}
 	}
 
-	for m in iter{
-		if depth >= 6 && &time.elapsed() >= stop { return bestscore; } 
-		if Some(m) == prev || Some(m) == kill { continue; }
-		b.move_piece(&m);
-		let mut value = minimize_beta(b, map, killerray, alpha, alpha+1, depth-1, time, stop, false); //Null window
-		if value > alpha && value < beta {
-			value = minimize_beta(b, map, killerray, alpha, beta, depth-1, time, stop, false); //Re-search
-			if value > alpha{
-				alpha = value;
-				exact = true;
-				best = Some(m);
+	if is_pv{
+		/*let mut child_count: u8 = 0;
+		let (mut tx, mut rx) = mpsc::channel();
+		for child in iter{
+			if depth >= 6 && &time.elapsed() >= stop { return bestscore; } 
+			if Some(child) == prev || Some(child) == kill { continue; }
+			child_count += 1;
+			let mut cmap = &mut Arc::clone(&map);
+			let mut ckiller = &mut killerray.clone();
+			let mut cb = &mut b.clone();
+			let mut ctx = tx.clone();
+			let ctime = time.clone();
+			let cstop = stop.clone();
+			let calpha = alpha;
+			let cbeta = beta;
+			let m = child.clone();
+			let cdepth = depth;
+			thread::spawn(move || {
+				b.move_piece(&m);
+				let mut value = minimize_beta(cb, cmap, ckiller, calpha, calpha+1, cdepth-1, &ctime, &cstop, false);
+				if value > calpha && value < cbeta{
+					value = minimize_beta(cb, cmap, ckiller, calpha, cbeta, cdepth-1, &ctime, &cstop, false);
+				}
+				ctx.send((value, m)).unwrap();
+			});
+		}
+		if child_count > 0{
+			let (bestvalue, bestmove) = (0..child_count).map(|_| rx.recv().unwrap()).max_by(|(v1, _), (v2, _)| v1.cmp(v2)).unwrap();
+			if bestvalue > bestscore{
+				map.lock().expect("Couldn't get arc value.").insert(b.hash(), bestvalue, TransFlag::EXACT, depth, Some(bestmove));
+				return bestvalue;
 			}
 		}
-		b.go_back();
+		map.lock().expect("Couldn't get arc value.").insert(b.hash(), bestscore, TransFlag::EXACT, depth, best);*/
+		return bestscore;
+	}else{
+		for m in iter{
+			if depth >= 6 && &time.elapsed() >= stop { return bestscore; } 
+			if Some(m) == prev || Some(m) == kill { continue; }
+			b.move_piece(&m);
+			let mut value = minimize_beta(b, map, killerray, alpha, alpha+1, depth-1, time, stop, false); //Null window
+			if value > alpha && value < beta {
+				value = minimize_beta(b, map, killerray, alpha, beta, depth-1, time, stop, false); //Re-search
+				if value > alpha{
+					alpha = value;
+					exact = true;
+					best = Some(m);
+				}
+			}
+			b.go_back();
 
-		if value > bestscore{
-			bestscore = value;
-			if value >= beta{
-				killerray.put(m.clone(), b.counter());
-				map.lock().expect("Couldn't get arc value.").insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-				return value;
+			if value > bestscore{
+				bestscore = value;
+				if value >= beta{
+					killerray.put(m.clone(), b.counter());
+					map.lock().expect("Couldn't get arc value.").insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
+					return value;
+				}
 			}
 		}
+		map.lock().expect("Couldn't get arc value.").insert(b.hash(), alpha, if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }, depth, best);
+		bestscore
 	}
-
-	map.lock().expect("Couldn't get arc value.").insert(b.hash(), alpha, if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }, depth, best);
-	bestscore
 }
 
-fn minimize_beta(b: &mut Board, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, alpha: Score, mut beta: Score, depth: usize, time: &Instant, stop: &Duration, is_pv: bool) -> Score{
+fn minimize_beta(b: &'static mut Board, map: &'static mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, alpha: Score, mut beta: Score, depth: usize, time: &Instant, stop: &Duration, is_pv: bool) -> Score{
 	if b.is_draw_by_repetition() { 
 		map.lock().expect("Couldn't get arc value.").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 		return 0; 

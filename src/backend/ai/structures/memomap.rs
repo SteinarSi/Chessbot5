@@ -55,7 +55,8 @@ impl MemoMap{
 
 	pub fn clean(&mut self) -> usize{
 		let before = self.map.len();
-		self.map.retain(|_, v| (*v).age != self.delete);
+		let delete = self.delete;
+		self.map.retain(|_, v| (*v).age != delete);
 		self.delete = ! self.delete;
 
 		before - self.map.len()

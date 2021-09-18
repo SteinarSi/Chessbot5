@@ -34,11 +34,21 @@ impl Gameboard{
 		self.board.is_checkmate()
 	}
 
+	pub fn is_game_over(&mut self) -> bool{
+		self.board.is_checkmate() || self.board.is_draw_by_repetition()
+	}
+
 	pub fn winner(&mut self) -> Option<Color>{
 		if self.board.is_checkmate() || self.board.is_draw_by_repetition(){
 			self.board.winner()
 		}else{
 			panic!("Why would you ask for a winner when the game is still ongoing!");
 		}
+	}
+}
+
+impl ToString for Gameboard{
+	fn to_string(&self) -> String{
+		self.board.to_string()
 	}
 }

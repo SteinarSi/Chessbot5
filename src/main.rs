@@ -3,54 +3,137 @@
 #![allow(non_camel_case_types)]
 #![allow(bare_trait_objects)]
 
-
 mod backend;
 
 use backend::bot_testing::test_bot;
-use druid::widget::{Align,Flex, Label, TextBox}
-use druid::{AppLauncher, Data, Env, Lens, LocalizedString, Widget, WindowDesc, WidgetExt}
+use backend::gameboard::Gameboard;
+use crate::backend::network::Connection::*;
+use std::io;
+use std::str;
+use std::net::*;
+use futures::executor::block_on;
 
-const VERTICAL_WIDGET_SPACING: f64 = 20.0;
-const TEXT_BOX_WIDTH: f64 = 200.0;
-const WINDOW_TITLE: LocalizedString<HelloState> = LocalizedString::new("Hello World!");
-
-#[derive(Clone, Data, Lens)]
-struct HelloState {
-    name: String,
+fn main(){
+    //test_bot();
+    //play();
 }
 
-fn main() {
-    // describe the main window
-    let main_window = WindowDesc::new(build_root_widget)
-        .title(WINDOW_TITLE)
-        .window_size((400.0, 400.0));
+fn play(){
+    println!("Welcome!
+Please choose how to play:
+1) Play against the bot as white
+2) Play against the bot as black
+3) Observe the bot play against itself
+4) Multiplayer");
+    let mut input = String::new();
+    let mut bot_next;
+    let mut eve = false;
+    let mut game = Gameboard::new();
 
-    // create the initial app state
-    let initial_state = HelloState {
-        name: "World".into(),
-    };
+    //MP Vars
+    let mut is_multiplayer = false;
+    let mut my_turn = true;
 
-    // start the application
-    AppLauncher::with_window(main_window)
-        .launch(initial_state)
-        .expect("Failed to launch application");
-}
+    loop{
+        input.clear();
+        io::stdin().read_line(&mut input).unwrap();
+        match &input.trim()[..]{
+            "1" => {
+                bot_next = false;
+                break;
+            }
+            "2" => {
+                bot_next = true;
+                break;
+            }
+            "3" => {
+                eve = true;
+                bot_next = true;
+                break;
+            }
+            "4"=> {
+                is_multiplayer = true;
+                println!("
+                    1) Host a game (Play as white)
+                    2) Connect to a game (Play as black)
+                    ");
+                io::stdin().read_line(&mut input).unwrap();
+                match &input.trim()[..]{
+                    "1" => {
+                        my_turn = true;
+                    }
+                    "2" => {
+                        my_turn = false;     
+                    }  
+                    _=>{
+                        println!("Could not recognize input. Please try again.");
+                    }
+                }
+            }
+            _ => {
+                println!("Could not recognize input. Please try again.");
+            }
+        }
+    }
+    input.clear();
+    if is_multiplayer
+    {
+        println!("
+                Enter IP and Port
+                ");
+        io::stdin().read_line(&mut input).unwrap();    
 
-fn build_root_widget() -> impl Widget<HelloState> {
-    // a label that will determine its text based on the current app data.
-    let label = Label::new(|data: &HelloState, _env: &Env| format!("Hello {}!", data.name));
-    // a textbox that modifies `name`.
-    let textbox = TextBox::new()
-        .with_placeholder("Who are we greeting?")
-        .fix_width(TEXT_BOX_WIDTH)
-        .lens(HelloState::name);
+        let ip = &input;
+        let mut conn = Connection::new(ip.to_string(), my_turn);
 
-    // arrange the two widgets vertically, with some padding
-    let layout = Flex::column()
-        .with_child(label)
-        .with_spacer(VERTICAL_WIDGET_SPACING)
-        .with_child(textbox);
+        while ! game.is_game_over(){
+            println!("{}", game.to_string());
+            if !my_turn{//Their turn
+                println!("Waiting for other player...");
+                //Wait until u recv a move
+                let mut mov = block_on(conn.recv_move());
+                game.move_piece(str::from_utf8(&mov).unwrap());
+            }
+            else{//My turn
+                io::stdin().read_line(&mut input).unwrap();
+                let attempt = game.move_piece(&input.trim());
+                if attempt.is_ok(){
+                    conn.send_move(&input);//Send ur move to them
+                    my_turn = false;
+                }
+                else{
+                    println!("{:?}", attempt);
+                }
+                input.clear();
+            }
+        }
+    }
 
-    // center the two widgets in the available space
-    Align::centered(layout)
+    else{
+        while ! game.is_game_over(){
+            println!("{}", game.to_string());
+            if bot_next{
+                println!("Thinking....");
+                game.start_bot();
+                bot_next = eve;
+            }
+            else{
+                io::stdin().read_line(&mut input).unwrap();
+                let attempt = game.move_piece(&input.trim());
+                if attempt.is_ok(){
+                    bot_next = true;
+                }
+                else{
+                    println!("{:?}", attempt);
+                }
+                input.clear();
+            }
+        }
+        println!("{}", game.to_string());
+        if game.is_checkmate(){
+            println!("{} wins!", game.winner().unwrap());
+        }else {
+            println!("Draw!");
+        }
+    }
 }

@@ -4,25 +4,17 @@ use crate::backend::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alph
             pvs::PVS, iddfs::IDDFS, omikron::Omikron/*, splitter::Splitter*/};
 use std::io;
 
+use super::ai::negadb::NegaDB;
+
 pub fn test_bot(){
     //simulate_from(&mut Omikron::new(), s, Black, 99);
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
     //simulate(&mut Omikron::new(), 99);
     //play_against(&mut IDDFS::new(), 99, White);
     //play_against(&mut Omikron::new(), 99, White);
+    play_against(&mut NegaDB::new(), 99, White);
     //vs(&mut Omikron::new(), 9, &mut MemoMax::new(), 4);
     //compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
-
-    test_memoalpha_instability();
-}
-
-fn test_memoalpha_instability(){
-    let mut ai = MemoAlpha::new();
-    let bård = Board::new();
-    ai.set_depth(6);
-    let m = ai.search(bård.clone());
-    println!("{:?}", ai.principal_variation(bård));
-    println!("{:?}", m);
 }
 
 
@@ -34,6 +26,7 @@ fn play_against(bot: &mut AI, depth: usize, c: Color){
     if c == Black{
         println!("Thinking...");
         let m = bot.search(board.clone());
+        println!("Done!");
         board.move_piece(&m);
         println!("{}", board.to_string());
     }

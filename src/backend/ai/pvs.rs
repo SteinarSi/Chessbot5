@@ -16,6 +16,7 @@ impl AI for PVS{
 	}
 
 	fn set_depth(&mut self, depth: usize){
+		if depth < 2 { panic!("Depth has to be at least 2"); }
 		self.depth = depth;
 	}
 

@@ -39,7 +39,6 @@ impl AI for IDDFS{
 			}
 			d += 1;
 		}
-		println!("Depth reached: {}", d-1);
 		self.memo.clean();
         self.memo.get(&b.hash()).unwrap().best.unwrap()
 	}

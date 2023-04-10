@@ -11,8 +11,6 @@ const ADD: u8 = LIFETIME - 1;
 //'Utdatert' betyr oppslag som ikke har blitt lest siden forrige gang .clean() ble kallt.
 pub struct MemoMap{
 	map: HashMap<Key, Transposition>,
-	//delete: u8
-
 	delete: bool
 }
 

@@ -23,6 +23,10 @@ impl AI for IDDFS{
 		self.depth = depth;
 	}
 
+	fn get_name(&self) -> &str {
+		"IDDFS"
+	}
+
 	fn search(&mut self, mut b: Board) -> Move{
 		let time = Instant::now();
 		let mut d = 2;

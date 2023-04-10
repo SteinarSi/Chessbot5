@@ -207,6 +207,15 @@ impl Board{
 		false
 	}
 
+	fn symmetric(&self, s: Score) -> Score {
+		if self.color_to_move == White { s }
+		else { -1 * s }
+	}
+
+	pub fn symmetric_heuristic_value(&self) -> Score {
+		self.symmetric(self.heuristic_value())
+	}
+
 	pub fn heuristic_value(&self) -> Score{
 		self.scores[self.counter]
 	}
@@ -249,6 +258,10 @@ impl Board{
             Ordering::Greater => Some(White),
             Ordering::Equal => None
 		}
+	}
+
+	pub fn symmetric_end_score(&self) -> Score{
+		self.symmetric(self.end_score())
 	}
 
 	//NB!!!! Denne må kun kalles i botsøket, etter at moves.len() == 0.

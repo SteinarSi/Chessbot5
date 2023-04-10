@@ -19,6 +19,10 @@ impl AI for PVS{
 		self.depth = depth;
 	}
 
+	fn get_name(&self) -> &str {
+		"PVS"
+	}
+
 	fn search(&mut self, mut b: Board) -> Move{
 		if b.color_to_move() == White{
 			self.maximize_alpha(&mut b, - INFINITY, INFINITY, self.depth);

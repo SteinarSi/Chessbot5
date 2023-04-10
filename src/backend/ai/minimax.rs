@@ -41,6 +41,10 @@ impl AI for MiniMax{
 		}
 		ret[0].0
 	}
+
+	fn get_name(&self) -> &str {
+		"MiniMax"
+	}
 }
 
 impl MiniMax{

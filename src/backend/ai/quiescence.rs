@@ -22,6 +22,10 @@ impl AI for Quiescence{
 		self.depth = depth;
 	}
 
+	fn get_name(&self) -> &str {
+		"Quiescence"
+	}
+
 	fn search(&mut self, mut b: Board) -> Move{
 		if b.color_to_move() == White{
 			self.maximize_alpha(&mut b, - INFINITY, INFINITY, self.depth);

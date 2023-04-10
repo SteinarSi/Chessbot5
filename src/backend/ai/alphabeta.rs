@@ -19,6 +19,10 @@ impl AI for AlphaBeta{
 		self.depth = depth;
 	}
 
+	fn get_name(&self) -> &str {
+		"AlphaBeta"
+	}
+
 	fn search(&mut self, mut b: Board) -> Move{
 		let mut ms = b.moves();
 		if ms.len() == 0 { panic!("Cannot pick a move with no moves to choose from!"); }

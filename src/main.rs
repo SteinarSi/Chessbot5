@@ -10,8 +10,8 @@ use backend::gameboard::Gameboard;
 use std::io;
 
 fn main(){
-    //test_bot();
-    play();
+    test_bot();
+    //play();
 }
 
 fn play(){

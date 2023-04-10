@@ -10,6 +10,8 @@ const INITIAL_DEPTH: usize = 99; //Dybden er irrelevant, bortsett fra når vi te
 const INITIAL_TIME: Duration = Duration::from_secs(10);
 const MEMO_LIMIT: usize = 2;
 
+
+/*
 pub struct Splitter{
 	memo: MemoMap,
 	depth: usize,
@@ -478,3 +480,4 @@ fn minimize_beta(b: &'static mut Board, map: &'static mut Arc<Mutex<&mut MemoMap
 	map.lock().expect("Couldn't get arc value.").insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);
 	bestscore
 }
+*/

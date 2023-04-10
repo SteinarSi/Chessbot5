@@ -26,27 +26,31 @@ impl AI for Omikron{
 		self.depth = depth;
 	}
 
+	fn get_name(&self) -> &str {
+		"Omikron"
+	}
+
 	fn search(&mut self, mut b: Board) -> Move{
 		match self.database.get(&mut b){
 			Some(m) => m,
 			None    => {
 				let tm = &mut self.memo as *mut MemoMap;
-				unsafe {
+				/*unsafe {
 					multisearch(&mut b, Arc::new(Mutex::new(&mut *tm)), &mut self.killerray, &mut self.time)
-				}
-				/*
+				}*/
+				
 				let time = Instant::now();
 				let mut d = 2;
 				while time.elapsed() < self.time && d <= self.depth {
 					if b.color_to_move() == White{
-						self.maximize_alpha(&mut b, - INFINITY, INFINITY, d, &time);
+						self.maximize_alpha(&mut b, - INFINITY, INFINITY, d, &time, true);
 					}
 					else{
-						self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time);
+						self.minimize_beta(&mut b, - INFINITY, INFINITY, d, &time, true);
 					}
-					//if let Some(t) = self.memo.get(&b.hash()).unwrap().best{
-					//	println!("Best so far, at depth {}: {}", d, t.to_string_short());
-					//}
+					if let Some(t) = self.memo.get(&b.hash()).unwrap().best{
+						println!("Best so far, at depth {}: {}", d, t.to_string_short());
+					}
 					d += 1;
 				}
 				println!("Depth reached: {}", d-1);
@@ -58,12 +62,13 @@ impl AI for Omikron{
 		        //let ret =self.memo.get(&b.hash()).unwrap().best.unwrap();
 		        //self.memo = MemoMap::new();
 		      	//ret
-		      	*/
+		      	
 			}
 		}
 	}
 }
 
+/*
 fn multisearch(b: &mut Board, map: Arc<Mutex<&'static mut MemoMap>>, killerray: &Killerray, stop: &Duration) -> Move{
 	let d = Arc::new(Mutex::new(2));
 	let start = Instant::now();
@@ -105,7 +110,7 @@ fn multisearch(b: &mut Board, map: Arc<Mutex<&'static mut MemoMap>>, killerray: 
 
 	map.lock().expect("Couldn't get arc value").get(&b.hash()).expect("This position hasn't been saved").best.expect("This position has no best move saved, despite being a PV node")
 }
-
+*/
 
 impl Omikron{
 	pub fn set_time(&mut self, seconds: u64){
@@ -191,7 +196,7 @@ impl Omikron{
 
 	}
 
-	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, beta: Score, depth: usize, time: &Instant) -> Score{
+	fn maximize_alpha(&mut self, b: &mut Board, mut alpha: Score, beta: Score, depth: usize, time: &Instant, pv: bool) -> Score{
 		if b.is_draw_by_repetition() { 
 			self.memo.insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 			return 0; 
@@ -220,7 +225,7 @@ impl Omikron{
 				if b.is_legal(&m) { 
 					prev = t.best;
 					b.move_piece(&m);
-					bestscore = self.minimize_beta(b, alpha, beta, depth-1, time);
+					bestscore = self.minimize_beta(b, alpha, beta, depth-1, time, false);
 					b.go_back();
 
 					//Beta-cutoff, stillingen er uakseptabel for svart.
@@ -247,7 +252,7 @@ impl Omikron{
 				m.set_heuristic_value(b.value_of(&m));
 				kill = Some(m);
 				b.move_piece(&m);
-				let value = self.minimize_beta(b, alpha, beta, depth-1, time);
+				let value = self.minimize_beta(b, alpha, beta, depth-1, time, false);
 				b.go_back();
 
 				if value > bestscore{
@@ -279,7 +284,7 @@ impl Omikron{
 		if prev == None && kill == None{
 			let m = iter.next().unwrap();
 			b.move_piece(&m);
-			let value = self.minimize_beta(b, alpha, beta, depth-1, time);
+			let value = self.minimize_beta(b, alpha, beta, depth-1, time, false);
 			b.go_back();
 			if value > bestscore{
 				if value > alpha{
@@ -300,9 +305,9 @@ impl Omikron{
 			if depth >= 6 && time.elapsed() >= self.time { return bestscore; } 
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
-			let mut value = self.minimize_beta(b, alpha, alpha+1, depth-1, time); //Null window
+			let mut value = self.minimize_beta(b, alpha, alpha+1, depth-1, time, false); //Null window
 			if value > alpha && value < beta {
-				value = self.minimize_beta(b, alpha, beta, depth-1, time); //Re-search
+				value = self.minimize_beta(b, alpha, beta, depth-1, time, false); //Re-search
 				if value > alpha{
 					alpha = value;
 					exact = true;
@@ -321,11 +326,16 @@ impl Omikron{
 			}
 		}
 
-		self.memo.insert(b.hash(), alpha, if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }, depth, best);
+		self.memo.insert(b.hash(), alpha, if exact {
+			TransFlag::EXACT
+		} else { 
+			if pv { println!("Despite being the root, the value is not exact. \nAlpha, Beta: {}, {}\nBestscore: {}", alpha, beta, bestscore); }
+			TransFlag::UPPER_BOUND 
+		}, depth, best);
 		bestscore
 	}
 
-	fn minimize_beta(&mut self, b: &mut Board, alpha: Score, mut beta: Score, depth: usize, time: &Instant) -> Score{
+	fn minimize_beta(&mut self, b: &mut Board, alpha: Score, mut beta: Score, depth: usize, time: &Instant, pv: bool) -> Score{
 		if b.is_draw_by_repetition() { 
 			self.memo.insert(b.hash(), 0, TransFlag::EXACT, 999, None);
 			return 0; 
@@ -350,7 +360,7 @@ impl Omikron{
 				if b.is_legal(&m){
 					prev = t.best;
 					b.move_piece(&m);
-					bestscore = self.maximize_alpha(b, alpha, beta, depth-1, time);
+					bestscore = self.maximize_alpha(b, alpha, beta, depth-1, time, false);
 					b.go_back();
 
 					if bestscore <= alpha{
@@ -373,7 +383,7 @@ impl Omikron{
 				m.set_heuristic_value(b.value_of(&m));
 				kill = Some(m);
 				b.move_piece(&m);
-				let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
+				let value = self.maximize_alpha(b, alpha, beta, depth-1, time, false);
 				b.go_back();
 
 				if value < bestscore{
@@ -400,7 +410,7 @@ impl Omikron{
 		if prev.is_none() && kill.is_none(){
 			let m = iter.next().unwrap();
 			b.move_piece(&m);
-			let value = self.maximize_alpha(b, alpha, beta, depth-1, time);
+			let value = self.maximize_alpha(b, alpha, beta, depth-1, time, false);
 			b.go_back();
 
 			if value < bestscore{
@@ -422,9 +432,9 @@ impl Omikron{
 			if depth >= 6 && time.elapsed() >= self.time { return bestscore; }
 			if Some(m) == prev || Some(m) == kill { continue; }
 			b.move_piece(&m);
-			let mut value = self.maximize_alpha(b, beta-1, beta, depth-1, time);
+			let mut value = self.maximize_alpha(b, beta-1, beta, depth-1, time, false);
 			if value > alpha && value < beta{
-				value = self.maximize_alpha(b, alpha, beta, depth-1, time);
+				value = self.maximize_alpha(b, alpha, beta, depth-1, time, false);
 				if value < beta{
 					beta = value;
 					exact = true;
@@ -443,315 +453,6 @@ impl Omikron{
 		}
 		self.memo.insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);
 		bestscore
-	}
-}
-fn maximize_alpha(b: &mut Board, mut alpha: Score, beta: Score, depth: usize, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, start: &Instant, stop: &Duration) -> Score{
-	if b.is_draw_by_repetition() { 
-		map.lock().expect("Couldn't get arc value").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
-		return 0; 
-	}
-	if depth <= 1 { return quimax(b, beta); }
-
-	let mut exact = false;
-	let mut best = None;
-	let mut prev = None;
-	let mut kill = None;
-	let mut bestscore = - INFINITY;
-
-	//Sjekker om vi allerede har et relevant oppslag i hashmappet vårt.
-	if let Some(t) = map.lock().expect("Couldn't get arc value").get(&b.hash()){
-		if t.depth >= depth{
-			//Hvis dybden på oppslaget er nok, kan vi bruke verdiene umiddelbart.
-			match &t.flag{
-				TransFlag::EXACT       => { return t.value; }
-				TransFlag::LOWER_BOUND => { if t.value >= beta { return t.value; } }
-				TransFlag::UPPER_BOUND => { if t.value <= alpha { return t.value; }}
-			}
-		}
-		prev = t.best;
-		//Hvis ikke kan vi ikke bruke verdiene.
-		//Da sjekker vi istedet om oppslaget har lagret et bra trekk, og evaluerer i så fall det trekket først.
-	}
-	if let Some(m) = prev{
-		if b.is_legal(&m) {
-			b.move_piece(&m);
-			bestscore = minimize_beta(b, alpha, beta, depth-1, map, killerray, start, stop);
-			b.go_back();
-
-			//Beta-cutoff, stillingen er uakseptabel for svart.
-			if bestscore >= beta{
-				killerray.put(m.clone(), b.counter());
-				map.lock().expect("Couldn't get arc value").insert(b.hash(), bestscore, TransFlag::LOWER_BOUND, depth, Some(m));
-				return bestscore;
-			}
-
-			//Trekket forbedret alfa, dette er dermed en PV-node.
-			if bestscore > alpha{
-				best = Some(m);
-				exact = true;
-				alpha = bestscore;
-			}
-		}
-	} 
-
-	//Sjekker om vi har et 'Killer Move' for denne dybden.
-	//Da evaluerer vi det trekket først.
-	if let Some(mut m) = killerray.get(b.counter()){
-		if b.is_legal(&m) && Some(m) != prev{
-			m.set_heuristic_value(b.value_of(&m));
-			kill = Some(m);
-			b.move_piece(&m);
-			let value = minimize_beta(b, alpha, beta, depth-1, map, killerray, start, stop);
-			b.go_back();
-
-			if value > bestscore{
-				//Beta-cutoff, stillingen er uakseptabel for svart.
-				if value >= beta{
-					map.lock().expect("Couldn't get arc value").insert(b.hash(), bestscore, TransFlag::LOWER_BOUND, depth, Some(m));
-					return value;
-				}
-
-				//Trekket forbedret alfa.
-				if value > alpha{
-					best = Some(m);
-					exact = true;
-					alpha = value;
-				}
-				bestscore = value;
-			}
-		}
-	}
-
-	// Først her, når vi allerede har vurdert eventuelle 'Killer'-trekk og memoiserte trekk,
-	// begynner vi å generere listen av alle trekk og evaluerer dem.
-	let mut ms = b.moves();
-	if ms.len() == 0 { return b.end_score(); }
-
-	ms.sort_by_heuristic(White);
-	let mut iter = ms.into_iter();
-
-	if prev == None && kill == None{
-		let m = iter.next().unwrap();
-		b.move_piece(&m);
-		let value = minimize_beta(b, alpha, beta, depth-1, map, killerray, start, stop);
-		b.go_back();
-		if value > bestscore{
-			if value > alpha{
-				if value >= beta{
-					killerray.put(m.clone(), b.counter());
-					map.lock().expect("Couldn't get arc value").insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-					return value;
-				}
-				alpha = value;
-				best = Some(m);
-				exact = true;
-			}
-			bestscore = value;
-		}
-	}
-
-	for m in iter{
-		if depth >= 6 && &start.elapsed() >= stop { return bestscore; } 
-		if Some(m) == prev || Some(m) == kill { continue; }
-		b.move_piece(&m);
-		let mut value = minimize_beta(b, alpha, alpha+1, depth-1, map, killerray, start, stop); //Null window
-		if value > alpha && value < beta {
-			value = minimize_beta(b, alpha, beta, depth-1, map, killerray, start, stop); //Re-search
-			if value > alpha{
-				alpha = value;
-				exact = true;
-				best = Some(m);
-			}
-		}
-		b.go_back();
-
-		if value > bestscore{
-			bestscore = value;
-			if value >= beta{
-				killerray.put(m.clone(), b.counter());
-				map.lock().expect("Couldn't get arc value").insert(b.hash(), value, TransFlag::LOWER_BOUND, depth, Some(m));
-				return value;
-			}
-		}
-	}
-
-	map.lock().expect("Couldn't get arc value").insert(b.hash(), alpha, if exact {TransFlag::EXACT} else { TransFlag::UPPER_BOUND }, depth, best);
-	bestscore
-}
-
-fn minimize_beta(b: &mut Board, alpha: Score, mut beta: Score, depth: usize, map: &mut Arc<Mutex<&mut MemoMap>>, killerray: &mut Killerray, start: &Instant, stop: &Duration) -> Score{
-	if b.is_draw_by_repetition() { 
-		map.lock().expect("Couldn't get arc value").insert(b.hash(), 0, TransFlag::EXACT, 999, None);
-		return 0; 
-	}
-	if depth <= 1 { return quimin(b, alpha); }
-
-	let mut exact = false;
-	let mut best = None;
-	let mut prev = None;
-	let mut kill = None;
-	let mut bestscore = INFINITY;
-
-	if let Some(t) = map.lock().expect("Couldn't get arc value").get(&b.hash()){
-		if t.depth >= depth{
-			match &t.flag{
-				TransFlag::EXACT       => { return t.value; }
-				TransFlag::LOWER_BOUND => { if t.value >= beta { return t.value; } }
-				TransFlag::UPPER_BOUND => { if t.value <= alpha { return t.value; }}
-			}
-		}
-		prev = t.best;
-	}
-
-	if let Some(m) = prev{
-		if b.is_legal(&m){
-			b.move_piece(&m);
-			bestscore = maximize_alpha(b, alpha, beta, depth-1, map, killerray, start, stop);
-			b.go_back();
-
-			if bestscore <= alpha{
-				killerray.put(m, b.counter());
-				map.lock().expect("Couldn't get arc value").insert(b.hash(), bestscore, TransFlag::UPPER_BOUND, depth, Some(m));
-				return bestscore;
-			}
-
-			if bestscore < beta{
-				exact = true;
-				beta = bestscore;
-				best = Some(m);
-			}
-		}
-	}
-
-	if let Some(mut m) = killerray.get(b.counter()){
-		if b.is_legal(&m) && Some(m) != prev{
-			m.set_heuristic_value(b.value_of(&m));
-			kill = Some(m);
-			b.move_piece(&m);
-			let value = maximize_alpha(b, alpha, beta, depth-1, map, killerray, start, stop);
-			b.go_back();
-
-			if value < bestscore{
-				if value <= alpha{
-					map.lock().expect("Couldn't get arc value").insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-					return value;
-				}
-
-				bestscore = value;
-				if value < beta{
-					exact = true;
-					beta = value;
-					best = Some(m);
-				}
-			}
-		}
-	}
-
-	let mut ms = b.moves();
-	if ms.len() == 0 { return b.end_score(); }
-	ms.sort_by_heuristic(Black);
-	let mut iter = ms.into_iter();
-
-	if prev.is_none() && kill.is_none(){
-		let m = iter.next().unwrap();
-		b.move_piece(&m);
-		let value = maximize_alpha(b, alpha, beta, depth-1, map, killerray, start, stop);
-		b.go_back();
-
-		if value < bestscore{
-			if value < beta{
-				if value <= alpha{
-					killerray.put(m.clone(), b.counter());
-					map.lock().expect("Couldn't get arc value").insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-					return value;
-				}
-				beta = value;
-				exact = true;
-				best = Some(m);
-			}
-			bestscore = value;
-		}
-	}
-
-	for m in iter{
-		if depth >= 6 && &start.elapsed() >= stop { return bestscore; }
-		if Some(m) == prev || Some(m) == kill { continue; }
-		b.move_piece(&m);
-		let mut value = maximize_alpha(b, beta-1, beta, depth-1, map, killerray, start, stop);
-		if value > alpha && value < beta{
-			value = maximize_alpha(b, alpha, beta, depth-1, map, killerray, start, stop);
-			if value < beta{
-				beta = value;
-				exact = true;
-				best = Some(m);
-			}
-		}
-		b.go_back();
-		if value < bestscore{
-			if value <= alpha{
-				killerray.put(m, depth);
-				map.lock().expect("Couldn't get arc value").insert(b.hash(), value, TransFlag::UPPER_BOUND, depth, Some(m));
-				return value;
-			}
-			bestscore = value;
-		}
-	}
-	map.lock().expect("Couldn't get arc value").insert(b.hash(), beta, if exact { TransFlag::EXACT } else { TransFlag::LOWER_BOUND }, depth, best);
-	bestscore
-}
-
-fn quimax(b: &mut Board, beta: Score) -> Score{
-	//Om den nåværende scoren allerede er uakseptabel for svart kan vi anta at hvits neste trekk gjør den enda mer uakseptabel.
-	//Da er det ikke vits i å sjekke engang. Dette antar altså et hvit ikke er i zugswang.
-	let stand_pat = b.heuristic_value();
-	if stand_pat >= beta && ! b.is_check() { return stand_pat; } 
-
-	let ms = b.moves();
-	if ms.len() == 0 { return b.end_score(); }
-
-	//Filtrerer trekk, vi vil kun ha trekk som flytter til en rute som ikke er truet.
-	let mut arr = [[None; 8]; 8];
-	let filt = |m: &Move| {
-		if let Some(bo) = arr[m.to.y][m.to.x]{
-			bo
-		}else{
-			let bo = ! b.is_threatened(&m.to);
-			arr[m.to.y][m.to.x] = Some(bo);
-			bo
-		}
-	};
-
-	let mut ms: Moves = ms.into_iter().filter(filt).collect();
-	if ms.len() == 0 { stand_pat }
-	else {
-		ms.sort_by_heuristic(White);
-		b.heuristic_value() + ms[0].heuristic_value()
-	}
-}
-
-fn quimin(b: &mut Board, alpha: Score) -> Score{
-	let stand_pat = b.heuristic_value();
-	if stand_pat <= alpha && ! b.is_check() { return stand_pat; }
-
-	let ms = b.moves();
-	if ms.len() == 0 { return b.end_score(); }
-
-	let mut arr = [[None; 8]; 8];
-	let filt = |m: &Move| {
-		if let Some(bo) = arr[m.to.y][m.to.x]{
-			bo
-		}else{
-			let bo = ! b.is_threatened(&m.to);
-			arr[m.to.y][m.to.x] = Some(bo);
-			bo
-		}
-	};
-
-	let mut ms: Moves = ms.into_iter().filter(filt).collect();
-	if ms.len() == 0 { stand_pat }
-	else {
-		ms.sort_by_heuristic(Black);
-		b.heuristic_value() + ms[0].heuristic_value()
 	}
 }
 

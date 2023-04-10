@@ -1,17 +1,28 @@
 use crate::backend::board_representation::{board::*};
 use crate::backend::ai::{interface::AI, minimax::MiniMax, memomax::MemoMax, alphabeta::AlphaBeta, 
             memoalpha::MemoAlpha, alphakiller::AlphaKiller, quiescence::Quiescence,
-            pvs::PVS, iddfs::IDDFS, omikron::Omikron, splitter::Splitter};
+            pvs::PVS, iddfs::IDDFS, omikron::Omikron/*, splitter::Splitter*/};
 use std::io;
 
 pub fn test_bot(){
     //simulate_from(&mut Omikron::new(), s, Black, 99);
     //vs(&mut MemoMax::new(), 5, &mut Quiescence::new(), 8);
-    simulate(&mut Splitter::new(), 99);
+    //simulate(&mut Omikron::new(), 99);
     //play_against(&mut IDDFS::new(), 99, White);
     //play_against(&mut Omikron::new(), 99, White);
     //vs(&mut Omikron::new(), 9, &mut MemoMax::new(), 4);
     //compare(&mut [("Quiescence", &mut Quiescence::new()), ("PVS", &mut PVS::new())], 10, 8);
+
+    test_memoalpha_instability();
+}
+
+fn test_memoalpha_instability(){
+    let mut ai = MemoAlpha::new();
+    let bård = Board::new();
+    ai.set_depth(6);
+    let m = ai.search(bård.clone());
+    println!("{:?}", ai.principal_variation(bård));
+    println!("{:?}", m);
 }
 
 

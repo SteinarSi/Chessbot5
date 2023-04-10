@@ -26,6 +26,10 @@ impl AI for MemoMax{
 		self.depth = depth;
 	}
 
+	fn get_name(&self) -> &str {
+		"MemoMax"
+	}
+
 	fn search(&mut self, mut b: Board) -> Move{
 		let ms = b.moves();
 		if ms.len() == 0 { panic!("Cannot pick a move when no moves are available"); }

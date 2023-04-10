@@ -51,3 +51,4 @@ impl ToString for Gameboard{
 	fn to_string(&self) -> String{
 		self.board.to_string()
 	}
+}
